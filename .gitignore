@@ -1,0 +1,58 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build directories
+/client/dist
+/client/build
+/server/dist
+/server/build
+
+# MongoDB data
+/data/db
+
+# Docker volumes
+mongodb_data/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+.directory
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Testing
+/coverage
+.nyc_output
+
+# Debug
+.pnpm-debug.log
+
+# Misc
+.cache/
+.project
+.settings/
+.tmproj
+*.esproj
+*.sublime-project
+*.sublime-workspace

@@ -1,0 +1,52 @@
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - team-lens-network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/teamlens
+    networks:
+      - team-lens-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    networks:
+      - team-lens-network
+    stdin_open: true
+
+networks:
+  team-lens-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  
