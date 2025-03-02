@@ -6,7 +6,7 @@ function App() {
   const [status, setStatus] = useState('Loading...')
 
   useEffect(() => {
-    fetch('/api/users')
+    fetch('/api/teams')
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok')

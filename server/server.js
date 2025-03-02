@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
+// Load environment variables
 dotenv.config();
+
+// Initialize Express
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -13,17 +16,17 @@ app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => console.log('MongoDB Atlas connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
+// Basic route for testing
 app.get('/', (req, res) => {
   res.send('Team Lens API is running');
 });
 
-// User routes
-const userRoutes = require('./routes/users');
-app.use('/api/users', userRoutes);
+// Import routes
+const teamRoutes = require('./routes/teams');
+app.use('/api/teams', teamRoutes);
 
 // Start server
 app.listen(PORT, () => {
