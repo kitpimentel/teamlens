@@ -29,6 +29,7 @@ services:
       - server
     environment:
       - NODE_ENV=development
+      - NODE_OPTIONS=--no-experimental-fetch
     networks:
       - team-lens-network
     stdin_open: true
