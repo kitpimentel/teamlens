@@ -1,48 +1,60 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import React, { Suspense } from 'react';
+import { 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Navigate 
+} from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import { Loader2 } from 'lucide-react';
+import './App.css';
+
+// Correctly import pages
+import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+
+// Global loading component
+const GlobalLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+    <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
+  </div>
+);
 
 function App() {
-  const [users, setUsers] = useState([])
-  const [status, setStatus] = useState('Loading...')
-
-  useEffect(() => {
-    fetch('/api/teams')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok')
-        }
-        return response.json()
-      })
-      .then(data => {
-        setUsers(data)
-        setStatus('Connected to API')
-      })
-      .catch(error => {
-        console.error('Error fetching users:', error)
-        setStatus('Error connecting to API')
-      })
-  }, [])
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Team Lens</h1>
-        <p>Backend Status: {status}</p>
-        <div>
-          <h2>Users</h2>
-          {users.length > 0 ? (
-            <ul>
-              {users.map(user => (
-                <li key={user._id}>{user.name} - {user.email}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No users found</p>
-          )}
-        </div>
-      </header>
-    </div>
-  )
+    <Router 
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
+      <div className="min-h-screen bg-background">
+        <Suspense fallback={<GlobalLoader />}>
+          <Routes>
+            <Route 
+              path="/" 
+              element={<Navigate to="/landing" replace />} 
+            />
+            <Route 
+              path="/landing/*" 
+              element={<LandingPage />} 
+            />
+            <Route 
+              path="/login" 
+              element={<Login />} 
+            />
+            <Route 
+              path="/signup" 
+              element={<Signup />} 
+            />
+          </Routes>
+        </Suspense>
+        
+        <Toaster />
+      </div>
+    </Router>
+  );
 }
 
-export default App
+export default App;

@@ -1,17 +1,20 @@
-FROM node:16-alpine
+# Use a full Node.js image instead of Alpine
+FROM node:18
 
-# Install dependencies required for Node.js
-RUN apk add --no-cache libc6-compat
-
+# Set the working directory
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 
+# Install dependencies
 RUN npm install
 
+# Copy the rest of the application
 COPY . .
 
+# Expose port
 EXPOSE 3000
 
-# Use a full Vite command with explicit host setting
+# Run Vite with a specific flag to handle crypto
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
