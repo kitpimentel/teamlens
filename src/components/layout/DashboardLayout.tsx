@@ -1,572 +1,768 @@
-import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { useWebSocketNotifications } from '../../hooks/useWebSocketNotifications';
-import { Toaster } from 'sonner';
-import { cn } from '@/lib/utils';
-
-// Import shadcn components
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import React, { useState } from 'react'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/context/ThemeContext'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-
-// Import Lucide icons
+} from '@/components/ui/dropdown-menu'
 import {
-  Home,
-  Users,
-  Folder,
-  Calendar,
-  BarChart2,
-  Settings,
-  MessageSquare,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import {
+  Menu,
+  Search,
   Bell,
-  HelpCircle,
-  Link2,
   LogOut,
+  User,
+  Settings,
   Moon,
   Sun,
-  Menu,
+  HelpCircle,
   X,
-  ChevronRight
-} from 'lucide-react';
+  Home,
+  Users,
+  Building2,
+  Settings2,
+  Grid,
+  BarChart,
+  Briefcase,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Terminal,
+  CheckSquare,
+  AlertCircle
+} from 'lucide-react'
 
 /**
- * DashboardLayout Component
+ * DashboardLayout component
  * 
- * Main layout for authenticated users providing:
- * - Responsive sidebar navigation
- * - Role-based menu items
- * - Real-time notifications via WebSocket
- * - Dark mode toggle
- * - Profile dropdown
+ * Provides the overall layout structure for authenticated pages including:
+ * - Top navigation bar
+ * - Side navigation
+ * - User dropdown
+ * - Theme toggle
+ * - Responsive mobile sidebar
  */
-const DashboardLayout = () => {
-  const { user, loading, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+const DashboardLayout: React.FC = () => {
+  const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [mobileSidebarView, setMobileSidebarView] = useState<'main' | 'notifications'>('main')
   
-  // Set up WebSocket notifications
-  const token = localStorage.getItem('accessToken');
-  const { connectionStatus, notificationCount, resetNotificationCount } = useWebSocketNotifications(token, !!user);
-
-  // Check for dark mode preference on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
+  // Mock notifications for the demo
+  const mockNotifications = [
+    {
+      id: 1,
+      title: 'New team member added',
+      message: 'Sarah Johnson has joined the team.',
+      time: '2 minutes ago',
+      read: false,
+      type: 'user'
+    },
+    {
+      id: 2,
+      title: 'Project status updated',
+      message: 'Website Redesign project status changed to "In Progress"',
+      time: '1 hour ago',
+      read: false,
+      type: 'project'
+    },
+    {
+      id: 3,
+      title: 'Meeting reminder',
+      message: 'Weekly team sync starts in 30 minutes',
+      time: '2 hours ago',
+      read: true,
+      type: 'meeting'
+    },
+    {
+      id: 4,
+      title: 'Task assigned to you',
+      message: 'Create wireframes for mobile app',
+      time: '5 hours ago',
+      read: true,
+      type: 'task'
+    },
+    {
+      id: 5,
+      title: 'Integration update',
+      message: 'JIRA integration updated to version 3.2.1',
+      time: '1 day ago',
+      read: true,
+      type: 'system'
     }
-  }, []);
-
-  // Close sidebar when route changes (mobile view)
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
-  // Reset notification count when visiting notifications page
-  useEffect(() => {
-    if (location.pathname === '/notifications') {
-      resetNotificationCount();
-    }
-  }, [location.pathname, resetNotificationCount]);
-
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    }
-  };
-
-  // Handle logout
+  ]
+  
+  // Count unread notifications
+  const unreadCount = mockNotifications.filter(n => !n.read).length
+  
+  // Handle user logout
   const handleLogout = async () => {
     try {
-      await logout();
-      navigate('/login');
+      await logout()
+      navigate('/login')
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout error:', error)
+      toast.error('There was a problem logging out')
     }
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-[250px]" />
-            <Skeleton className="h-4 w-[200px]" />
+  }
+  
+  // Get navigation items based on user role
+  const getNavigationItems = () => {
+    if (!user) return []
+    
+    switch (user.role) {
+      case 'superAdmin':
+        return [
+          {
+            title: 'Dashboard',
+            icon: <Home className="h-5 w-5" />,
+            href: '/super-admin',
+            active: location.pathname === '/super-admin'
+          },
+          {
+            title: 'Users',
+            icon: <Users className="h-5 w-5" />,
+            href: '/super-admin/users',
+            active: location.pathname === '/super-admin/users'
+          },
+          {
+            title: 'Organizations',
+            icon: <Building2 className="h-5 w-5" />,
+            href: '/super-admin/organizations',
+            active: location.pathname === '/super-admin/organizations'
+          },
+          {
+            title: 'Integrations',
+            icon: <Grid className="h-5 w-5" />,
+            href: '/super-admin/integrations',
+            active: location.pathname === '/super-admin/integrations'
+          },
+          {
+            title: 'Reports',
+            icon: <BarChart className="h-5 w-5" />,
+            href: '/super-admin/reports',
+            active: location.pathname === '/super-admin/reports'
+          },
+          {
+            title: 'Settings',
+            icon: <Settings2 className="h-5 w-5" />,
+            href: '/super-admin/settings',
+            active: location.pathname === '/super-admin/settings'
+          }
+        ]
+      case 'orgAdmin':
+        return [
+          {
+            title: 'Dashboard',
+            icon: <Home className="h-5 w-5" />,
+            href: '/org-admin',
+            active: location.pathname === '/org-admin'
+          },
+          {
+            title: 'Projects',
+            icon: <Briefcase className="h-5 w-5" />,
+            href: '/org-admin/projects',
+            active: location.pathname.startsWith('/org-admin/projects')
+          },
+          {
+            title: 'Team',
+            icon: <Users className="h-5 w-5" />,
+            href: '/org-admin/users',
+            active: location.pathname === '/org-admin/users'
+          },
+          {
+            title: 'Invitations',
+            icon: <Users className="h-5 w-5" />,
+            href: '/org-admin/invitations',
+            active: location.pathname === '/org-admin/invitations'
+          },
+          {
+            title: 'Capacity',
+            icon: <Terminal className="h-5 w-5" />,
+            href: '/org-admin/capacity',
+            active: location.pathname === '/org-admin/capacity'
+          },
+          {
+            title: 'Schedule',
+            icon: <Calendar className="h-5 w-5" />,
+            href: '/org-admin/schedule',
+            active: location.pathname === '/org-admin/schedule'
+          },
+          {
+            title: 'Tasks',
+            icon: <CheckSquare className="h-5 w-5" />,
+            href: '/org-admin/tasks',
+            active: location.pathname === '/org-admin/tasks'
+          },
+          {
+            title: 'Meetings',
+            icon: <Calendar className="h-5 w-5" />,
+            href: '/org-admin/meetings',
+            active: location.pathname === '/org-admin/meetings'
+          },
+          {
+            title: 'Reports',
+            icon: <FileText className="h-5 w-5" />,
+            href: '/org-admin/reports',
+            active: location.pathname === '/org-admin/reports'
+          },
+          {
+            title: 'Chat',
+            icon: <MessageSquare className="h-5 w-5" />,
+            href: '/org-admin/chat',
+            active: location.pathname === '/org-admin/chat'
+          },
+          {
+            title: 'Settings',
+            icon: <Settings2 className="h-5 w-5" />,
+            href: '/org-admin/settings',
+            active: location.pathname === '/org-admin/settings'
+          }
+        ]
+      case 'teamMember':
+        return [
+          {
+            title: 'My Tasks',
+            icon: <CheckSquare className="h-5 w-5" />,
+            href: '/team',
+            active: location.pathname === '/team'
+          },
+          {
+            title: 'Collaboration',
+            icon: <Users className="h-5 w-5" />,
+            href: '/team/collaboration',
+            active: location.pathname === '/team/collaboration'
+          },
+          {
+            title: 'Projects',
+            icon: <Briefcase className="h-5 w-5" />,
+            href: '/team/projects',
+            active: location.pathname.startsWith('/team/projects')
+          },
+          {
+            title: 'Reports',
+            icon: <FileText className="h-5 w-5" />,
+            href: '/team/reports',
+            active: location.pathname === '/team/reports'
+          },
+          {
+            title: 'Chat',
+            icon: <MessageSquare className="h-5 w-5" />,
+            href: '/team/chat',
+            active: location.pathname === '/team/chat'
+          }
+        ]
+      case 'client':
+        return [
+          {
+            title: 'Dashboard',
+            icon: <Home className="h-5 w-5" />,
+            href: '/client',
+            active: location.pathname === '/client'
+          },
+          {
+            title: 'Reports',
+            icon: <FileText className="h-5 w-5" />,
+            href: '/client/reports',
+            active: location.pathname === '/client/reports'
+          },
+          {
+            title: 'Timeline',
+            icon: <Calendar className="h-5 w-5" />,
+            href: '/client/timeline',
+            active: location.pathname === '/client/timeline'
+          },
+          {
+            title: 'Feedback',
+            icon: <MessageSquare className="h-5 w-5" />,
+            href: '/client/feedback',
+            active: location.pathname === '/client/feedback'
+          },
+          {
+            title: 'Notifications',
+            icon: <Bell className="h-5 w-5" />,
+            href: '/client/notifications',
+            active: location.pathname === '/client/notifications'
+          },
+          {
+            title: 'Chat',
+            icon: <MessageSquare className="h-5 w-5" />,
+            href: '/client/chat',
+            active: location.pathname === '/client/chat'
+          }
+        ]
+      default:
+        return []
+    }
+  }
+  
+  // Get notification background color based on type
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'user':
+        return 'bg-blue-500'
+      case 'project':
+        return 'bg-purple-500'
+      case 'meeting':
+        return 'bg-amber-500'
+      case 'task':
+        return 'bg-green-500'
+      case 'system':
+        return 'bg-gray-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+  
+  // Get notification icon based on type
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'user':
+        return <User className="h-4 w-4" />
+      case 'project':
+        return <Briefcase className="h-4 w-4" />
+      case 'meeting':
+        return <Calendar className="h-4 w-4" />
+      case 'task':
+        return <CheckSquare className="h-4 w-4" />
+      case 'system':
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return <Bell className="h-4 w-4" />
+    }
+  }
+  
+  // Navigation items
+  const navigationItems = getNavigationItems()
+  
+  // Helper to render the sidebar
+  const renderSidebar = () => (
+    <aside className="w-64 border-r">
+      <div className="py-6 px-4">
+        <Link to="/" className="flex items-center mb-6">
+          <div className="w-8 h-8 mr-2 bg-primary rounded-md flex items-center justify-center text-primary-foreground font-bold text-lg">
+            TL
           </div>
-        </div>
+          <h1 className="text-xl font-bold">Team Lens</h1>
+        </Link>
+        
+        <nav className="space-y-1">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                item.active 
+                  ? "bg-primary text-primary-foreground" 
+                  : "hover:bg-muted"
+              )}
+            >
+              <span className="mr-3">{item.icon}</span>
+              {item.title}
+            </Link>
+          ))}
+        </nav>
       </div>
-    );
-  }
-
-  // Redirect to login if not authenticated
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-
-  const navigationLinks = getNavigationLinks(user.role);
-
-  return (
-    <div className="flex h-screen bg-background">
-      <Toaster position="top-right" richColors closeButton />
-      
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:w-64 lg:z-50 bg-card border-r">
-        <SidebarContent 
-          user={user} 
-          navigationLinks={navigationLinks}
-          handleLogout={handleLogout}
-        />
-      </aside>
-      
-      {/* Mobile Sidebar */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64">
-          <SidebarContent 
-            user={user} 
-            navigationLinks={navigationLinks}
-            handleLogout={handleLogout}
-            mobile
-          />
-        </SheetContent>
-      </Sheet>
-      
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1 lg:pl-64">
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 bg-card border-b">
-          <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            {/* Menu button (mobile only) */}
-            <div className="lg:hidden">
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </SheetTrigger>
-            </div>
-            
-            {/* Page title */}
-            <div className="flex items-center flex-1 lg:flex-none">
-              <h1 className="text-lg font-semibold">
-                {getPageTitle(location.pathname, user.role)}
-              </h1>
-              
-              {/* Connection status indicator */}
-              <div className="ml-3 flex items-center">
-                <span className={cn(
-                  "h-2 w-2 rounded-full mr-1",
-                  connectionStatus === 'connected' ? "bg-green-500" : 
-                  connectionStatus === 'connecting' ? "bg-amber-500" : "bg-red-500"
-                )} />
-                <span className="text-xs text-muted-foreground">
-                  {connectionStatus === 'connected' ? "Connected" : 
-                   connectionStatus === 'connecting' ? "Connecting..." : "Disconnected"}
+    </aside>
+  )
+  
+  // Helper to render the notifications panel
+  const renderNotifications = () => (
+    <ScrollArea className="h-full px-4 py-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Notifications</h3>
+        <Button variant="ghost" size="sm">
+          Mark all as read
+        </Button>
+      </div>
+      <Separator className="my-4" />
+      <div className="space-y-4">
+        {mockNotifications.map((notification) => (
+          <div 
+            key={notification.id} 
+            className={cn(
+              "p-3 rounded-lg border",
+              notification.read ? "opacity-70" : ""
+            )}
+          >
+            <div className="flex">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center mr-3 text-white",
+                getNotificationColor(notification.type)
+              )}>
+                {getNotificationIcon(notification.type)}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-medium text-sm">{notification.title}</h4>
+                  {!notification.read && (
+                    <Badge className="ml-2 bg-blue-500">New</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {notification.message}
+                </p>
+                <span className="text-xs text-muted-foreground block mt-1">
+                  {notification.time}
                 </span>
               </div>
             </div>
-            
-            {/* Right side actions */}
-            <div className="flex items-center space-x-1">
-              {/* Dark mode toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                aria-label="Toggle dark mode"
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
-              </Button>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
+  )
+  
+  // Render the mobile sidebar
+  const renderMobileSidebar = () => (
+    <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+      <SheetContent side="left" className="w-72 p-0">
+        <SheetHeader className="p-4 text-left border-b">
+          <SheetTitle className="flex items-center">
+            <div className="w-8 h-8 mr-2 bg-primary rounded-md flex items-center justify-center text-primary-foreground font-bold text-lg">
+              TL
+            </div>
+            <span>Team Lens</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="ml-auto" 
+              onClick={() => setIsMobileSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </SheetTitle>
+        </SheetHeader>
+        
+        {mobileSidebarView === 'main' ? (
+          <ScrollArea className="h-[calc(100vh-65px)]">
+            <div className="p-4">
+              <div className="flex items-center space-x-4 mb-6">
+                <Avatar>
+                  {user?.avatar ? (
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                  ) : null}
+                  <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium leading-none">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
               
-              {/* Notifications */}
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
-                className="relative"
-              >
-                <NavLink to="/notifications">
-                  <Bell className="h-5 w-5" />
-                  {notificationCount > 0 && (
-                    <Badge 
-                      className="absolute -top-1 -right-1 px-1 h-4 min-w-4 flex items-center justify-center text-xs" 
-                      variant="destructive"
-                    >
-                      {notificationCount > 99 ? '99+' : notificationCount}
+              <nav className="space-y-1">
+                {navigationItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      item.active 
+                        ? "bg-primary text-primary-foreground" 
+                        : "hover:bg-muted"
+                    )}
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    {item.title}
+                  </Link>
+                ))}
+              </nav>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => setMobileSidebarView('notifications')}
+                >
+                  <Bell className="mr-3 h-5 w-5" />
+                  Notifications
+                  {unreadCount > 0 && (
+                    <Badge className="ml-auto">
+                      {unreadCount}
                     </Badge>
                   )}
-                  <span className="sr-only">Notifications</span>
-                </NavLink>
-              </Button>
-              
-              {/* Chat link */}
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
+                </Button>
+                <Link to="/profile">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  >
+                    <User className="mr-3 h-5 w-5" />
+                    Profile
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setTheme(theme === 'dark' ? 'light' : 'dark')
+                  }}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="mr-3 h-5 w-5" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="mr-3 h-5 w-5" />
+                      Dark Mode
+                    </>
+                  )}
+                </Button>
+                <Link to="/help">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  >
+                    <HelpCircle className="mr-3 h-5 w-5" />
+                    Help & Support
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </ScrollArea>
+        ) : (
+          <>
+            <div className="p-4 border-b">
+              <Button 
+                variant="ghost" 
+                className="flex items-center" 
+                onClick={() => setMobileSidebarView('main')}
               >
-                <NavLink to={`/${getRoleUrlPrefix(user.role)}/chat`}>
-                  <MessageSquare className="h-5 w-5" />
-                  <span className="sr-only">Chat</span>
-                </NavLink>
+                <X className="mr-2 h-4 w-4" />
+                Back
               </Button>
-              
-              {/* User profile dropdown */}
-              <UserProfileMenu user={user} handleLogout={handleLogout} />
+            </div>
+            {renderNotifications()}
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+  
+  if (!user) {
+    return <div>Loading...</div>
+  }
+  
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top Navigation */}
+      <header className="sticky top-0 z-30 border-b bg-background">
+        <div className="flex h-16 items-center px-4 md:px-6">
+          <div className="flex items-center md:hidden">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <div className="hidden md:flex">
+            <Link to="/" className="flex items-center">
+              <div className="w-8 h-8 mr-2 bg-primary rounded-md flex items-center justify-center text-primary-foreground font-bold text-lg">
+                TL
+              </div>
+              <h1 className="text-xl font-bold">Team Lens</h1>
+            </Link>
+          </div>
+          
+          <div className="flex-1 flex justify-center px-4">
+            <div className="relative hidden md:flex items-center w-full max-w-md">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder="Search..."
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-8 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
             </div>
           </div>
-        </header>
-        
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8">
-          <Outlet />
-        </main>
-        
-        {/* Footer */}
-        <footer className="mt-auto border-t py-4 px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Team Lens. All rights reserved.
-        </footer>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Sidebar Content Component
- * 
- * Extracted component for sidebar content to avoid duplication
- * between desktop and mobile versions
- */
-interface SidebarContentProps {
-  user: any;
-  navigationLinks: NavigationLink[];
-  handleLogout: () => Promise<void>;
-  mobile?: boolean;
-}
-
-function SidebarContent({ user, navigationLinks, handleLogout, mobile }: SidebarContentProps) {
-  return (
-    <div className="flex flex-col h-full">
-      {/* Logo and header */}
-      <div className="h-16 flex items-center px-4 border-b">
-        <img className="h-10 w-auto" src="/logo.svg" alt="Team Lens" />
-        {mobile && (
-          <Button variant="ghost" size="icon" className="ml-auto">
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close sidebar</span>
-          </Button>
-        )}
-      </div>
-      
-      {/* User info */}
-      <div className="px-4 py-3 border-b">
-        <div className="flex items-center">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              {user.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="ml-3 overflow-hidden">
-            <p className="text-sm font-medium truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate capitalize">
-              {formatRoleName(user.role)}
-            </p>
+          
+          <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  Notifications
+                  <Badge variant="outline">{unreadCount} new</Badge>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-80 overflow-y-auto">
+                  {mockNotifications.slice(0, 5).map((notification) => (
+                    <DropdownMenuItem 
+                      key={notification.id}
+                      className={cn(
+                        "flex items-start cursor-pointer py-3",
+                        notification.read ? "opacity-70" : ""
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center mr-3 text-white",
+                        getNotificationColor(notification.type)
+                      )}>
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-medium text-sm">{notification.title}</h4>
+                          {!notification.read && (
+                            <Badge className="ml-2 bg-blue-500">New</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {notification.message}
+                        </p>
+                        <span className="text-xs text-muted-foreground block mt-1">
+                          {notification.time}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/notifications" className="w-full text-center justify-center">
+                    View all notifications
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  {theme === 'dark' ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar>
+                    {user.avatar ? (
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                    ) : null}
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/help">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Help & Support
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="text-red-500 focus:text-red-500"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-      </div>
+      </header>
       
-      {/* Navigation */}
-      <ScrollArea className="flex-1">
-        <nav className="px-2 py-4 space-y-1">
-          {navigationLinks.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={({ isActive }) =>
-                cn(
-                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/70 hover:bg-accent hover:text-foreground"
-                )
-              }
-            >
-              <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-              <span>{item.name}</span>
-              {item.badge && (
-                <Badge 
-                  variant="outline" 
-                  className="ml-auto text-xs"
-                >
-                  {item.badge}
-                </Badge>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-      </ScrollArea>
-      
-      {/* Bottom actions */}
-      <div className="border-t p-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start text-destructive hover:text-destructive"
-          onClick={handleLogout}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-        </Button>
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block">
+          {renderSidebar()}
+        </div>
+        
+        {/* Mobile Sidebar */}
+        {renderMobileSidebar()}
+        
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto">
+          <Outlet />
+        </main>
       </div>
     </div>
-  );
+  )
 }
 
-/**
- * User Profile Menu Component
- * 
- * Dropdown menu for user profile actions
- */
-interface UserProfileMenuProps {
-  user: any;
-  handleLogout: () => Promise<void>;
-}
-
-function UserProfileMenu({ user, handleLogout }: UserProfileMenuProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              {user.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="sr-only">Open user menu</span>
-        </Button>
-      </DropdownMenuTrigger>
-      
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <NavLink to="/profile" className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Profile Settings</span>
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </NavLink>
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem asChild>
-            <NavLink to="/integrations" className="cursor-pointer">
-              <Link2 className="mr-2 h-4 w-4" />
-              <span>Integrations</span>
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </NavLink>
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem asChild>
-            <NavLink to="/help" className="cursor-pointer">
-              <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Help Center</span>
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </NavLink>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem
-          onClick={handleLogout}
-          className="text-destructive focus:text-destructive cursor-pointer"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sign out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-// Types for navigation links
-interface NavigationLink {
-  name: string;
-  href: string;
-  icon: any;
-  badge?: string;
-}
-
-/**
- * Get navigation links based on user role
- */
-function getNavigationLinks(role: string): NavigationLink[] {
-  switch (role) {
-    case 'superAdmin':
-      return [
-        { name: 'Dashboard', href: '/super-admin', icon: Home },
-        { name: 'Users', href: '/super-admin/users', icon: Users },
-        { name: 'Organizations', href: '/super-admin/organizations', icon: Folder },
-        { name: 'Settings', href: '/super-admin/settings', icon: Settings },
-        { name: 'Integrations', href: '/super-admin/integrations', icon: Link2 },
-        { name: 'Reports', href: '/super-admin/reports', icon: BarChart2 },
-      ];
-    case 'orgAdmin':
-      return [
-        { name: 'Dashboard', href: '/org-admin', icon: Home },
-        { name: 'Users', href: '/org-admin/users', icon: Users },
-        { name: 'Invitations', href: '/org-admin/invitations', icon: Users, badge: 'New' },
-        { name: 'Projects', href: '/org-admin/projects', icon: Folder },
-        { name: 'Team Capacity', href: '/org-admin/capacity', icon: Users },
-        { name: 'Schedule', href: '/org-admin/schedule', icon: Calendar },
-        { name: 'Tasks', href: '/org-admin/tasks', icon: Folder },
-        { name: 'Reports', href: '/org-admin/reports', icon: BarChart2 },
-        { name: 'Meetings', href: '/org-admin/meetings', icon: Users },
-        { name: 'Chat', href: '/org-admin/chat', icon: MessageSquare },
-        { name: 'Settings', href: '/org-admin/settings', icon: Settings },
-      ];
-    case 'teamMember':
-      return [
-        { name: 'My Tasks', href: '/team', icon: Folder },
-        { name: 'Collaboration', href: '/team/collaboration', icon: Users },
-        { name: 'Reports', href: '/team/reports', icon: BarChart2 },
-        { name: 'Chat', href: '/team/chat', icon: MessageSquare },
-      ];
-    case 'client':
-      return [
-        { name: 'Dashboard', href: '/client', icon: Home },
-        { name: 'Reports', href: '/client/reports', icon: BarChart2 },
-        { name: 'Timeline', href: '/client/timeline', icon: Calendar },
-        { name: 'Feedback', href: '/client/feedback', icon: MessageSquare },
-        { name: 'Notifications', href: '/client/notifications', icon: Bell },
-        { name: 'Chat', href: '/client/chat', icon: MessageSquare },
-      ];
-    default:
-      return [];
-  }
-}
-
-/**
- * Get URL prefix based on user role
- */
-function getRoleUrlPrefix(role: string): string {
-  switch (role) {
-    case 'superAdmin': return 'super-admin';
-    case 'orgAdmin': return 'org-admin';
-    case 'teamMember': return 'team';
-    case 'client': return 'client';
-    default: return '';
-  }
-}
-
-/**
- * Format role name for display
- */
-function formatRoleName(role: string): string {
-  switch (role) {
-    case 'superAdmin': return 'Super Admin';
-    case 'orgAdmin': return 'Organization Admin';
-    case 'teamMember': return 'Team Member';
-    case 'client': return 'Client';
-    default: return role;
-  }
-}
-
-/**
- * Get page title based on current path and user role
- */
-function getPageTitle(pathname: string, role: string): string {
-  // Base path for role
-  const basePath = `/${getRoleUrlPrefix(role)}`;
-  
-  // Dashboard or My Tasks for team members
-  if (pathname === basePath) {
-    return role === 'teamMember' ? 'My Tasks' : 'Dashboard';
-  }
-  
-  // Get last segment of path
-  const pathSegments = pathname.split('/');
-  const lastSegment = pathSegments[pathSegments.length - 1];
-  
-  // Common page titles
-  const pageTitles: Record<string, string> = {
-    'chat': 'Chat',
-    'users': 'User Management',
-    'organizations': 'Organizations',
-    'settings': 'Settings',
-    'integrations': 'Integrations',
-    'reports': 'Reports',
-    'invitations': 'Team Invitations',
-    'projects': 'Projects',
-    'capacity': 'Team Capacity',
-    'schedule': 'Schedule Management',
-    'tasks': 'Task Management',
-    'meetings': 'Meeting Integrations',
-    'collaboration': 'Collaboration Board',
-    'timeline': 'Project Timeline',
-    'feedback': 'Feedback & Requests',
-    'notifications': 'Notifications',
-    'profile': 'Profile Settings',
-    'help': 'Help Center',
-  };
-  
-  // Return title from mapping if available
-  if (lastSegment in pageTitles) {
-    return pageTitles[lastSegment];
-  }
-  
-  // Special cases for detail pages
-  if (pathSegments.includes('projects') && pathSegments.length > 3) {
-    return 'Project Details';
-  }
-  
-  if (pathSegments.includes('tasks') && pathSegments.length > 3) {
-    return 'Task Details';
-  }
-  
-  return 'Team Lens';
-}
-
-export default DashboardLayout;
+export default DashboardLayout

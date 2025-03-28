@@ -1,11 +1,20 @@
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DataTable } from "@/components/ui/data-table"
-import { Skeleton } from "@/components/ui/skeleton"
+import React, { useState } from 'react'
 import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,593 +30,1090 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { useToast } from "@/components/ui/use-toast"
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { 
-  Search, 
-  Plus, 
+  Search,  
   MoreHorizontal, 
   Edit, 
   Trash2, 
-  Building, 
-  Users, 
-  Settings, 
-  PlusCircle
-} from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+  Building2,
+  Users,
+  Activity,
+  Download,
+  Filter,
+  ExternalLink,
+  Briefcase
+} from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { toast } from 'sonner'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Textarea } from '@/components/ui/textarea'
+import { KpiCard } from '@/components/admin/KpiCard'
 
 /**
- * Validation schema for adding a new organization
+ * Organization interface for the mock data
  */
-const addOrgSchema = z.object({
-  name: z.string().min(2, "Organization name must be at least 2 characters"),
-  domain: z.string().min(2, "Domain must be at least 2 characters"),
-  type: z.string().min(1, "Please select a type"),
-  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
-  contactEmail: z.string().email("Please enter a valid email address"),
-})
+interface Organization {
+  id: string
+  name: string
+  description: string
+  industry: string
+  website?: string
+  status: 'active' | 'inactive' | 'trial'
+  createdAt: string
+  memberCount: number
+  clientCount: number
+  projectCount: number
+  subscription: 'free' | 'starter' | 'business' | 'enterprise'
+  logo?: string
+  adminEmail?: string
+  adminName?: string
+}
 
 /**
- * Organization Management page for Super Admins
+ * OrganizationManagement component for Super Admin
+ * Allows management of all organizations on the platform
  */
-function OrganizationManagement() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [openDialog, setOpenDialog] = useState(false)
-  const { toast } = useToast()
-  
-  // Simulation of organization data fetching
-  const [orgData, setOrgData] = useState([])
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Mock data
-      const mockOrgs = [
-        { 
-          id: "1", 
-          name: "Acme Corp", 
-          type: "Enterprise",
-          domain: "acmecorp.com",
-          logo: "",
-          usersCount: 45, 
-          projects: 12, 
-          status: "active", 
-          createdAt: "2022-08-15",
-          adminName: "Jane Smith",
-          adminEmail: "jane@acmecorp.com"
-        },
-        { 
-          id: "2", 
-          name: "Globex Industries", 
-          type: "Mid-Market",
-          domain: "globex.com",
-          logo: "",
-          usersCount: 32, 
-          projects: 8, 
-          status: "active", 
-          createdAt: "2022-09-22",
-          adminName: "Robert Johnson",
-          adminEmail: "robert@globex.com"
-        },
-        { 
-          id: "3", 
-          name: "Wayne Enterprises", 
-          type: "Enterprise",
-          domain: "wayne.com",
-          logo: "",
-          usersCount: 78, 
-          projects: 24, 
-          status: "active", 
-          createdAt: "2022-05-10",
-          adminName: "Bruce Wayne",
-          adminEmail: "bruce@wayne.com"
-        },
-        { 
-          id: "4", 
-          name: "Stark Industries", 
-          type: "Enterprise",
-          domain: "stark.com",
-          logo: "",
-          usersCount: 53, 
-          projects: 16, 
-          status: "active", 
-          createdAt: "2022-07-28",
-          adminName: "Tony Stark",
-          adminEmail: "tony@stark.com"
-        },
-        { 
-          id: "5", 
-          name: "Umbrella Corp", 
-          type: "Mid-Market",
-          domain: "umbrella.com",
-          logo: "",
-          usersCount: 28, 
-          projects: 6, 
-          status: "inactive", 
-          createdAt: "2023-01-15",
-          adminName: "Michael Brown",
-          adminEmail: "michael@umbrella.com"
-        },
-        { 
-          id: "6", 
-          name: "Cyberdyne Systems", 
-          type: "Startup",
-          domain: "cyberdyne.com",
-          logo: "",
-          usersCount: 14, 
-          projects: 3, 
-          status: "active", 
-          createdAt: "2023-03-08",
-          adminName: "Miles Dyson",
-          adminEmail: "miles@cyberdyne.com"
-        },
-        { 
-          id: "7", 
-          name: "Oscorp Industries", 
-          type: "Mid-Market",
-          domain: "oscorp.com",
-          logo: "",
-          usersCount: 22, 
-          projects: 9, 
-          status: "active", 
-          createdAt: "2022-11-19",
-          adminName: "Norman Osborn",
-          adminEmail: "norman@oscorp.com"
-        },
-        { 
-          id: "8", 
-          name: "Initech", 
-          type: "Small Business",
-          domain: "initech.com",
-          logo: "",
-          usersCount: 12, 
-          projects: 4, 
-          status: "active", 
-          createdAt: "2023-02-25",
-          adminName: "Bill Lumbergh",
-          adminEmail: "bill@initech.com"
-        },
-      ]
-      
-      setOrgData(mockOrgs)
-      setIsLoading(false)
-    }
-    
-    fetchData()
-  }, [])
-  
-  // Form for adding a new organization
-  const form = useForm<z.infer<typeof addOrgSchema>>({
-    resolver: zodResolver(addOrgSchema),
-    defaultValues: {
-      name: "",
-      domain: "",
-      type: "",
-      contactName: "",
-      contactEmail: "",
-    },
+const OrganizationManagement: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedSubscription, setSelectedSubscription] = useState<string>('all')
+  const [isAddOrgOpen, setIsAddOrgOpen] = useState(false)
+  const [newOrgData, setNewOrgData] = useState({
+    name: '',
+    description: '',
+    industry: '',
+    website: '',
+    adminName: '',
+    adminEmail: '',
   })
-  
-  /**
-   * Handle form submission for adding a new organization
-   */
-  const onSubmit = async (values: z.infer<typeof addOrgSchema>) => {
-    // In a real app, this would send the data to the server
-    console.log("Adding organization:", values)
-    
-    // Show success toast
-    toast({
-      title: "Organization created",
-      description: `${values.name} has been added successfully`,
-    })
-    
-    // Reset form and close dialog
-    form.reset()
-    setOpenDialog(false)
-  }
-  
-  /**
-   * Get organization initials for avatar fallback
-   */
-  const getOrgInitials = (name: string) => {
-    const words = name.split(' ')
-    if (words.length === 1) return words[0].charAt(0).toUpperCase()
-    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
-  }
-  
-  /**
-   * Table columns configuration
-   */
-  const columns = [
+
+  // Mock organizations data for demo
+  const mockOrganizations: Organization[] = [
     {
-      accessorKey: "name",
-      header: "Organization",
-      cell: ({ row }) => {
-        const org = row.original as any
-        
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={org.logo} alt={org.name} />
-              <AvatarFallback>{getOrgInitials(org.name)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">{org.name}</p>
-              <p className="text-sm text-muted-foreground">{org.domain}</p>
-            </div>
-          </div>
-        )
-      },
+      id: 'org-1',
+      name: 'Acme Corp',
+      description: 'Leading provider of everything',
+      industry: 'Technology',
+      website: 'https://acmecorp.com',
+      status: 'active',
+      createdAt: '2023-01-15',
+      memberCount: 24,
+      clientCount: 5,
+      projectCount: 8,
+      subscription: 'business',
+      logo: 'https://ui-avatars.com/api/?name=Acme+Corp&background=6366f1&color=fff',
+      adminName: 'Emma Johnson',
+      adminEmail: 'emma@acmecorp.com'
     },
     {
-      accessorKey: "type",
-      header: "Type",
+      id: 'org-2',
+      name: 'Globex Inc',
+      description: 'Global export services',
+      industry: 'Manufacturing',
+      website: 'https://globexinc.com',
+      status: 'active',
+      createdAt: '2023-03-22',
+      memberCount: 18,
+      clientCount: 3,
+      projectCount: 5,
+      subscription: 'enterprise',
+      logo: 'https://ui-avatars.com/api/?name=Globex+Inc&background=f43f5e&color=fff',
+      adminName: 'Michael Chen',
+      adminEmail: 'michael@globexinc.com'
     },
     {
-      accessorKey: "usersCount",
-      header: "Users",
+      id: 'org-3',
+      name: 'Stark Industries',
+      description: 'Innovative technologies and solutions',
+      industry: 'Technology',
+      website: 'https://starkindustries.com',
+      status: 'trial',
+      createdAt: '2023-05-10',
+      memberCount: 8,
+      clientCount: 1,
+      projectCount: 2,
+      subscription: 'starter',
+      logo: 'https://ui-avatars.com/api/?name=Stark+Industries&background=10b981&color=fff',
+      adminName: 'Tony Stark',
+      adminEmail: 'tony@starkindustries.com'
     },
     {
-      accessorKey: "projects",
-      header: "Projects",
+      id: 'org-4',
+      name: 'Wayne Enterprises',
+      description: 'Conglomerate with diverse business interests',
+      industry: 'Conglomerate',
+      website: 'https://wayne-enterprises.com',
+      status: 'active',
+      createdAt: '2023-02-18',
+      memberCount: 35,
+      clientCount: 7,
+      projectCount: 12,
+      subscription: 'enterprise',
+      logo: 'https://ui-avatars.com/api/?name=Wayne+Enterprises&background=8b5cf6&color=fff',
+      adminName: 'Bruce Wayne',
+      adminEmail: 'bruce@wayne-enterprises.com'
     },
     {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string
-        
-        return (
-          <div className="flex items-center">
-            <span
-              className={`mr-2 h-2 w-2 rounded-full ${
-                status === "active" ? "bg-green-500" : "bg-gray-400"
-              }`}
-            />
-            <span className="capitalize">{status}</span>
-          </div>
-        )
-      },
+      id: 'org-5',
+      name: 'Umbrella Corporation',
+      description: 'Pharmaceutical research and development',
+      industry: 'Healthcare',
+      website: 'https://umbrella-corp.com',
+      status: 'inactive',
+      createdAt: '2023-04-05',
+      memberCount: 0,
+      clientCount: 0,
+      projectCount: 0,
+      subscription: 'free',
+      logo: 'https://ui-avatars.com/api/?name=Umbrella+Corp&background=ec4899&color=fff'
     },
     {
-      accessorKey: "createdAt",
-      header: "Created",
-      cell: ({ row }) => {
-        const date = row.getValue("createdAt") as string
-        
-        return (
-          <span>
-            {new Date(date).toLocaleDateString()}
-          </span>
-        )
-      },
+      id: 'org-6',
+      name: 'LexCorp',
+      description: 'Technology and research company',
+      industry: 'Technology',
+      website: 'https://lexcorp.com',
+      status: 'active',
+      createdAt: '2023-06-20',
+      memberCount: 16,
+      clientCount: 4,
+      projectCount: 6,
+      subscription: 'business',
+      logo: 'https://ui-avatars.com/api/?name=LexCorp&background=fb923c&color=fff',
+      adminName: 'Lex Luthor',
+      adminEmail: 'lex@lexcorp.com'
     },
     {
-      accessorKey: "adminName",
-      header: "Admin",
-      cell: ({ row }) => {
-        const org = row.original as any
-        
-        return (
-          <div>
-            <p>{org.adminName}</p>
-            <p className="text-sm text-muted-foreground">{org.adminEmail}</p>
-          </div>
-        )
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const org = row.original
-        
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => console.log("View organization", org)}>
-                <Building className="mr-2 h-4 w-4" />
-                View details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log("Manage users", org)}>
-                <Users className="mr-2 h-4 w-4" />
-                Manage users
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log("Edit settings", org)}>
-                <Settings className="mr-2 h-4 w-4" />
-                Edit settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => console.log("Delete organization", org)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete organization
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-    },
+      id: 'org-7',
+      name: 'Daily Planet',
+      description: 'News and media organization',
+      industry: 'Media',
+      website: 'https://dailyplanet.com',
+      status: 'trial',
+      createdAt: '2023-07-14',
+      memberCount: 5,
+      clientCount: 0,
+      projectCount: 1,
+      subscription: 'starter',
+      logo: 'https://ui-avatars.com/api/?name=Daily+Planet&background=06b6d4&color=fff',
+      adminName: 'Perry White',
+      adminEmail: 'perry@dailyplanet.com'
+    }
   ]
   
-  // Filter organizations based on search term
-  const filteredOrgs = searchTerm
-    ? orgData.filter((org: any) => 
-        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.adminName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.adminEmail.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : orgData
+  // Filter organizations based on search query and filters
+  const filteredOrganizations = mockOrganizations.filter(org => {
+    const matchesSearch = 
+      org.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      org.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (org.adminName && org.adminName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (org.adminEmail && org.adminEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    const matchesIndustry = selectedIndustry === 'all' || org.industry === selectedIndustry
+    const matchesStatus = selectedStatus === 'all' || org.status === selectedStatus
+    const matchesSubscription = selectedSubscription === 'all' || org.subscription === selectedSubscription
+    
+    return matchesSearch && matchesIndustry && matchesStatus && matchesSubscription
+  })
+  
+  // KPI data for organization metrics
+  const kpiData = [
+    { 
+      title: 'Total Organizations',
+      value: mockOrganizations.length.toString(),
+      change: '+2',
+      trend: 'up',
+      description: 'Past 30 days',
+      icon: <Building2 className="h-4 w-4" />
+    },
+    { 
+      title: 'Active Users',
+      value: '512',
+      change: '+48',
+      trend: 'up',
+      description: 'Across all organizations',
+      icon: <Users className="h-4 w-4" />
+    },
+    { 
+      title: 'Active Projects',
+      value: '64',
+      change: '+7',
+      trend: 'up',
+      description: 'Currently in progress',
+      icon: <Briefcase className="h-4 w-4" />
+    },
+    { 
+      title: 'Platform Utilization',
+      value: '86%',
+      change: '+3.2%',
+      trend: 'up',
+      description: 'Average across orgs',
+      icon: <Activity className="h-4 w-4" />
+    }
+  ]
+  
+  // Industry options for dropdown
+  const industries = [
+    'Technology',
+    'Manufacturing',
+    'Healthcare',
+    'Finance',
+    'Education',
+    'Retail',
+    'Media',
+    'Conglomerate',
+    'Consulting',
+    'Non-profit'
+  ]
+  
+  // Handle adding a new organization
+  const handleAddOrganization = () => {
+    // Validation
+    if (!newOrgData.name || !newOrgData.description || !newOrgData.industry) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+    
+    if (newOrgData.adminEmail && !newOrgData.adminName) {
+      toast.error('Admin name is required if admin email is provided')
+      return
+    }
+    
+    // In a real app, this would call an API
+    // For now, just show success message
+    toast.success(`Organization ${newOrgData.name} created successfully`)
+    setIsAddOrgOpen(false)
+    
+    // Reset form
+    setNewOrgData({
+      name: '',
+      description: '',
+      industry: '',
+      website: '',
+      adminName: '',
+      adminEmail: '',
+    })
+  }
+  
+  // Get badge color based on status
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
+      case 'trial':
+        return 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+      case 'inactive':
+        return 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20'
+      default:
+        return 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20'
+    }
+  }
+  
+  // Get badge color based on subscription
+  const getSubscriptionBadgeColor = (subscription: string) => {
+    switch (subscription) {
+      case 'free':
+        return 'bg-gray-500'
+      case 'starter':
+        return 'bg-blue-500'
+      case 'business':
+        return 'bg-indigo-500'
+      case 'enterprise':
+        return 'bg-purple-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+  
+  // Mock function to handle organization actions
+  const handleOrgAction = (action: string, orgId: string) => {
+    switch (action) {
+      case 'edit':
+        toast.info(`Edit organization ${orgId} (This would open the edit form)`)
+        break
+      case 'delete':
+        toast.info(`Delete organization ${orgId} (This would show a confirmation dialog)`)
+        break
+      case 'users':
+        toast.info(`View users for organization ${orgId}`)
+        break
+      case 'projects':
+        toast.info(`View projects for organization ${orgId}`)
+        break
+      default:
+        break
+    }
+  }
   
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Organization Management</h2>
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Organization
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Organization</DialogTitle>
-              <DialogDescription>
-                Create a new organization in the platform.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Organization Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Acme Corporation" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Organization Management</h1>
+          <p className="text-muted-foreground">
+            Manage all organizations on the platform.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Dialog open={isAddOrgOpen} onOpenChange={setIsAddOrgOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Building2 className="mr-2 h-4 w-4" />
+                Add Organization
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[525px]">
+              <DialogHeader>
+                <DialogTitle>Add New Organization</DialogTitle>
+                <DialogDescription>
+                  Create a new organization on the platform. You can optionally add an admin at the same time.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newOrgData.name}
+                    onChange={(e) => setNewOrgData({...newOrgData, name: e.target.value})}
+                    className="col-span-3"
                   />
-                  <FormField
-                    control={form.control}
-                    name="domain"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Domain</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="acmecorp.com" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Primary domain for this organization
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="description" className="text-right pt-2">
+                    Description *
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={newOrgData.description}
+                    onChange={(e) => setNewOrgData({...newOrgData, description: e.target.value})}
+                    className="col-span-3"
+                    rows={3}
                   />
-                  <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Organization Type</FormLabel>
-                        <FormControl>
-                          <select 
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            {...field}
-                          >
-                            <option value="">Select a type</option>
-                            <option value="Enterprise">Enterprise</option>
-                            <option value="Mid-Market">Mid-Market</option>
-                            <option value="Small Business">Small Business</option>
-                            <option value="Startup">Startup</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="industry" className="text-right">
+                    Industry *
+                  </Label>
+                  <Select 
+                    value={newOrgData.industry} 
+                    onValueChange={(value) => setNewOrgData({...newOrgData, industry: value})}
+                  >
+                    <SelectTrigger id="industry" className="col-span-3">
+                      <SelectValue placeholder="Select an industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {industries.map(industry => (
+                        <SelectItem key={industry} value={industry}>
+                          {industry}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="website" className="text-right">
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    value={newOrgData.website}
+                    onChange={(e) => setNewOrgData({...newOrgData, website: e.target.value})}
+                    className="col-span-3"
+                    placeholder="https://"
                   />
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Primary Contact</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="contactName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="contactEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="john@acmecorp.com" 
-                              type="email" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Organization Admin (Optional)
+                    </span>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="submit">Create Organization</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminName" className="text-right">
+                    Admin Name
+                  </Label>
+                  <Input
+                    id="adminName"
+                    value={newOrgData.adminName}
+                    onChange={(e) => setNewOrgData({...newOrgData, adminName: e.target.value})}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminEmail" className="text-right">
+                    Admin Email
+                  </Label>
+                  <Input
+                    id="adminEmail"
+                    type="email"
+                    value={newOrgData.adminEmail}
+                    onChange={(e) => setNewOrgData({...newOrgData, adminEmail: e.target.value})}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsAddOrgOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAddOrganization}
+                >
+                  Create Organization
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+      
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpiData.map((kpi, index) => (
+          <KpiCard 
+            key={index}
+            title={kpi.title}
+            value={kpi.value}
+            change={kpi.change}
+            trend={kpi.trend as 'up' | 'down' | 'neutral'}
+            description={kpi.description}
+            icon={kpi.icon}
+          />
+        ))}
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle>Organizations</CardTitle>
           <CardDescription>
-            Manage all organizations across the platform
+            Manage all organizations on the platform.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search organizations..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <select
-                className="h-10 rounded-md border border-input px-3 py-2 bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full sm:w-[180px]"
-                defaultValue="all"
-              >
-                <option value="all">All Types</option>
-                <option value="Enterprise">Enterprise</option>
-                <option value="Mid-Market">Mid-Market</option>
-                <option value="Small Business">Small Business</option>
-                <option value="Startup">Startup</option>
-              </select>
-              <select
-                className="h-10 rounded-md border border-input px-3 py-2 bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full sm:w-[180px]"
-                defaultValue="all"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-            
-            <Tabs defaultValue="all">
+          <Tabs defaultValue="all-orgs" className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between">
               <TabsList>
-                <TabsTrigger value="all">All Organizations</TabsTrigger>
-                <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
-                <TabsTrigger value="mid-market">Mid-Market</TabsTrigger>
-                <TabsTrigger value="small">Small Business</TabsTrigger>
-                <TabsTrigger value="startup">Startup</TabsTrigger>
+                <TabsTrigger value="all-orgs">All Organizations</TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="trial">Trial</TabsTrigger>
+                <TabsTrigger value="inactive">Inactive</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="all" className="p-0 mt-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={columns}
-                    data={filteredOrgs}
+              <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search organizations..."
+                    className="pl-8 w-full sm:w-[250px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="enterprise" className="p-0 mt-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={columns}
-                    data={filteredOrgs.filter((org: any) => org.type === "Enterprise")}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="mid-market" className="p-0 mt-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={columns}
-                    data={filteredOrgs.filter((org: any) => org.type === "Mid-Market")}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="small" className="p-0 mt-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={columns}
-                    data={filteredOrgs.filter((org: any) => org.type === "Small Business")}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="startup" className="p-0 mt-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={columns}
-                    data={filteredOrgs.filter((org: any) => org.type === "Startup")}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="sm:ml-2">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filter
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[200px]">
+                    <DropdownMenuLabel>Filter Organizations</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                      <Label htmlFor="industry-filter">Industry</Label>
+                      <Select 
+                        value={selectedIndustry} 
+                        onValueChange={setSelectedIndustry}
+                      >
+                        <SelectTrigger id="industry-filter" className="mt-1">
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Industries</SelectItem>
+                          {industries.map(industry => (
+                            <SelectItem key={industry} value={industry}>
+                              {industry}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                      <Label htmlFor="status-filter">Status</Label>
+                      <Select 
+                        value={selectedStatus} 
+                        onValueChange={setSelectedStatus}
+                      >
+                        <SelectTrigger id="status-filter" className="mt-1">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="trial">Trial</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                      <Label htmlFor="subscription-filter">Subscription</Label>
+                      <Select 
+                        value={selectedSubscription} 
+                        onValueChange={setSelectedSubscription}
+                      >
+                        <SelectTrigger id="subscription-filter" className="mt-1">
+                          <SelectValue placeholder="Select subscription" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Plans</SelectItem>
+                          <SelectItem value="free">Free</SelectItem>
+                          <SelectItem value="starter">Starter</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
+                          <SelectItem value="enterprise">Enterprise</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" className="sm:ml-2">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
+            
+            <TabsContent value="all-orgs" className="pt-4">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox />
+                      </TableHead>
+                      <TableHead className="min-w-[200px]">Organization</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Subscription</TableHead>
+                      <TableHead>Users</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrganizations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="h-24 text-center">
+                          No organizations found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredOrganizations.map((org) => (
+                        <TableRow key={org.id}>
+                          <TableCell>
+                            <Checkbox />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8">
+                                {org.logo ? (
+                                  <AvatarImage src={org.logo} alt={org.name} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {org.name.charAt(0)}{org.name.split(' ')[1]?.charAt(0) || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{org.name}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {org.description}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {org.adminName ? (
+                              <div>
+                                <div className="font-medium">{org.adminName}</div>
+                                <div className="text-xs text-muted-foreground">{org.adminEmail}</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Not assigned</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusBadgeColor(org.status)}>
+                              {org.status.charAt(0).toUpperCase() + org.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getSubscriptionBadgeColor(org.subscription)}>
+                              {org.subscription.charAt(0).toUpperCase() + org.subscription.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {org.clientCount} client{org.clientCount !== 1 ? 's' : ''}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{org.createdAt}</div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOrgAction('edit', org.id)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('users', org.id)}>
+                                  <Users className="mr-2 h-4 w-4" />
+                                  View Users
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('projects', org.id)}>
+                                  <Briefcase className="mr-2 h-4 w-4" />
+                                  View Projects
+                                </DropdownMenuItem>
+                                {org.website && (
+                                  <DropdownMenuItem
+                                    onClick={() => window.open(org.website, '_blank')}
+                                  >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Visit Website
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleOrgAction('delete', org.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            {/* Other tabs would filter by status - the implementation would be similar */}
+            <TabsContent value="active" className="pt-4">
+              <div className="rounded-md border">
+                <Table>
+                  {/* Similar table structure with filtered organizations */}
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox />
+                      </TableHead>
+                      <TableHead className="min-w-[200px]">Organization</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Subscription</TableHead>
+                      <TableHead>Users</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrganizations
+                      .filter(org => org.status === 'active')
+                      .map((org) => (
+                        <TableRow key={org.id}>
+                          {/* Same row structure as the all-orgs tab */}
+                          <TableCell>
+                            <Checkbox />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8">
+                                {org.logo ? (
+                                  <AvatarImage src={org.logo} alt={org.name} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {org.name.charAt(0)}{org.name.split(' ')[1]?.charAt(0) || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{org.name}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {org.description}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {org.adminName ? (
+                              <div>
+                                <div className="font-medium">{org.adminName}</div>
+                                <div className="text-xs text-muted-foreground">{org.adminEmail}</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Not assigned</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusBadgeColor(org.status)}>
+                              {org.status.charAt(0).toUpperCase() + org.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getSubscriptionBadgeColor(org.subscription)}>
+                              {org.subscription.charAt(0).toUpperCase() + org.subscription.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {org.clientCount} client{org.clientCount !== 1 ? 's' : ''}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{org.createdAt}</div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOrgAction('edit', org.id)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('users', org.id)}>
+                                  <Users className="mr-2 h-4 w-4" />
+                                  View Users
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('projects', org.id)}>
+                                  <Briefcase className="mr-2 h-4 w-4" />
+                                  View Projects
+                                </DropdownMenuItem>
+                                {org.website && (
+                                  <DropdownMenuItem
+                                    onClick={() => window.open(org.website, '_blank')}
+                                  >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Visit Website
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleOrgAction('delete', org.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            {/* Trial tab */}
+            <TabsContent value="trial" className="pt-4">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox />
+                      </TableHead>
+                      <TableHead className="min-w-[200px]">Organization</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Subscription</TableHead>
+                      <TableHead>Users</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrganizations
+                      .filter(org => org.status === 'trial')
+                      .map((org) => (
+                        <TableRow key={org.id}>
+                          {/* Same row structure */}
+                          <TableCell>
+                            <Checkbox />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8">
+                                {org.logo ? (
+                                  <AvatarImage src={org.logo} alt={org.name} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {org.name.charAt(0)}{org.name.split(' ')[1]?.charAt(0) || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{org.name}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {org.description}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {/* Same structure for admin info */}
+                            {org.adminName ? (
+                              <div>
+                                <div className="font-medium">{org.adminName}</div>
+                                <div className="text-xs text-muted-foreground">{org.adminEmail}</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Not assigned</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusBadgeColor(org.status)}>
+                              {org.status.charAt(0).toUpperCase() + org.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getSubscriptionBadgeColor(org.subscription)}>
+                              {org.subscription.charAt(0).toUpperCase() + org.subscription.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {org.clientCount} client{org.clientCount !== 1 ? 's' : ''}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{org.createdAt}</div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOrgAction('edit', org.id)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('users', org.id)}>
+                                  <Users className="mr-2 h-4 w-4" />
+                                  View Users
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('projects', org.id)}>
+                                  <Briefcase className="mr-2 h-4 w-4" />
+                                  View Projects
+                                </DropdownMenuItem>
+                                {org.website && (
+                                  <DropdownMenuItem
+                                    onClick={() => window.open(org.website, '_blank')}
+                                  >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Visit Website
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleOrgAction('delete', org.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            {/* Inactive tab */}
+            <TabsContent value="inactive" className="pt-4">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox />
+                      </TableHead>
+                      <TableHead className="min-w-[200px]">Organization</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Subscription</TableHead>
+                      <TableHead>Users</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrganizations
+                      .filter(org => org.status === 'inactive')
+                      .map((org) => (
+                        <TableRow key={org.id}>
+                          {/* Same row structure */}
+                          <TableCell>
+                            <Checkbox />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8">
+                                {org.logo ? (
+                                  <AvatarImage src={org.logo} alt={org.name} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {org.name.charAt(0)}{org.name.split(' ')[1]?.charAt(0) || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{org.name}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {org.description}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {/* Same structure for admin info */}
+                            {org.adminName ? (
+                              <div>
+                                <div className="font-medium">{org.adminName}</div>
+                                <div className="text-xs text-muted-foreground">{org.adminEmail}</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Not assigned</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusBadgeColor(org.status)}>
+                              {org.status.charAt(0).toUpperCase() + org.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getSubscriptionBadgeColor(org.subscription)}>
+                              {org.subscription.charAt(0).toUpperCase() + org.subscription.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {org.clientCount} client{org.clientCount !== 1 ? 's' : ''}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{org.createdAt}</div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOrgAction('edit', org.id)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('users', org.id)}>
+                                  <Users className="mr-2 h-4 w-4" />
+                                  View Users
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrgAction('projects', org.id)}>
+                                  <Briefcase className="mr-2 h-4 w-4" />
+                                  View Projects
+                                </DropdownMenuItem>
+                                {org.website && (
+                                  <DropdownMenuItem
+                                    onClick={() => window.open(org.website, '_blank')}
+                                  >
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Visit Website
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleOrgAction('delete', org.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

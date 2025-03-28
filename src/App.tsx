@@ -15,12 +15,12 @@ import ResetPassword from "./pages/auth/ResetPassword"
 import InviteSignup from "./pages/auth/InviteSignup"
 
 // Super Admin Pages
-// import SuperAdminDashboard from "./pages/superAdmin/Dashboard"
-// import UserManagement from "./pages/superAdmin/UserManagement"
-// import OrganizationManagement from "./pages/superAdmin/OrganizationManagement"
-// import PlatformSettings from "./pages/superAdmin/PlatformSettings"
-// import IntegrationsManagement from "./pages/superAdmin/IntegrationsManagement"
-// import SuperAdminReports from "./pages/superAdmin/Reports"
+import SuperAdminDashboard from "./pages/superAdmin/Dashboard"
+import UserManagement from "./pages/superAdmin/UserManagement"
+import OrganizationManagement from "./pages/superAdmin/OrganizationManagement"
+import PlatformSettings from "./pages/superAdmin/PlatformSettings"
+import IntegrationsManagement from "./pages/superAdmin/IntegrationsManagement"
+import SuperAdminReports from "./pages/superAdmin/Reports"
 
 // Organization Admin Pages
 // import OrgDashboard from "./pages/orgAdmin/Dashboard"
@@ -100,7 +100,7 @@ function App() {
         {/* <Route path="/dashboard" element={<Navigate to={getUserHomePage(user?.role)} />} /> */}
 
         {/* Super Admin routes */}
-        {/* <Route path="/super-admin">
+        <Route path="/super-admin">
           <Route 
             index 
             element={
@@ -149,7 +149,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
-        </Route> */}
+        </Route>
 
         {/* Organization Admin routes */}
         {/* <Route path="/org-admin">

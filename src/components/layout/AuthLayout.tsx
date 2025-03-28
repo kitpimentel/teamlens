@@ -1,143 +1,93 @@
-import { useState, useEffect } from 'react';
-import { Outlet, useLocation, Navigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { Toaster } from 'sonner';
-import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
+import React from 'react'
+import { Outlet, Link } from 'react-router-dom'
+import { useTheme } from '@/context/ThemeContext'
+import { Button } from '@/components/ui/button'
+import { Moon, Sun, Settings } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 /**
- * Layout component for authentication pages
- * Provides common UI elements and handles redirection for authenticated users
+ * AuthLayout component
+ * 
+ * Provides the layout structure for authentication pages including:
+ * - Header with logo
+ * - Theme toggle
+ * - Content area
+ * - Footer
  */
-const AuthLayout = () => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-  const [mounted, setMounted] = useState(false);
-
-  // Handle initial component mount animation
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // If user is already authenticated, redirect to their dashboard
-  if (!loading && user) {
-    return <Navigate to={getUserHomePage(user.role)} replace />;
-  }
-
+const AuthLayout: React.FC = () => {
+  const { theme, setTheme } = useTheme()
+  
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <Toaster position="top-right" richColors closeButton />
-      
-      <div
-        className={cn(
-          "transition-opacity duration-500", 
-          mounted ? "opacity-100" : "opacity-0"
-        )}
-      >
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <img
-            className="mx-auto h-16 w-auto"
-            src="/logo.svg"
-            alt="Team Lens"
-          />
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">
-            {getPageTitle(location.pathname)}
-          </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground max-w">
-            {getPageSubtitle(location.pathname)}
-          </p>
-        </div>
-        
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <Card>
-            <CardContent className="pt-6">
-              <Outlet />
-            </CardContent>
-          </Card>
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className="border-b py-4 px-6">
+        <div className="container mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <div className="w-8 h-8 mr-2 bg-primary rounded-md flex items-center justify-center text-primary-foreground font-bold text-lg">
+              TL
+            </div>
+            <h1 className="text-xl font-bold">Team Lens</h1>
+          </Link>
           
-          {/* Footer links */}
-          <div className="mt-6 text-center">
-            <div className="space-x-4">
-              {location.pathname !== '/login' && (
-                <a
-                  href="/login"
-                  className="text-sm font-medium text-primary hover:text-primary/90"
-                >
-                  Sign in
-                </a>
-              )}
-              
-              {location.pathname !== '/signup' && location.pathname.indexOf('/invite/') !== 0 && (
-                <a
-                  href="/signup"
-                  className="text-sm font-medium text-primary hover:text-primary/90"
-                >
-                  Sign up
-                </a>
-              )}
-              
-              {location.pathname !== '/forgot-password' && (
-                <a
-                  href="/forgot-password"
-                  className="text-sm font-medium text-primary hover:text-primary/90"
-                >
-                  Forgot password?
-                </a>
-              )}
-            </div>
-            
-            <div className="mt-6">
-              <p className="text-xs text-muted-foreground">
-                &copy; {new Date().getFullYear()} Team Lens. All rights reserved.
-              </p>
-            </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                {theme === 'dark' ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme('light')}>
+                <Sun className="mr-2 h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('dark')}>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('system')}>
+                <Settings className="mr-2 h-4 w-4" />
+                System
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+      
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center py-12 px-4">
+        <div className="w-full max-w-md">
+          <Outlet />
+        </div>
+      </main>
+      
+      {/* Footer */}
+      <footer className="border-t py-6 px-4">
+        <div className="container mx-auto text-center text-sm text-muted-foreground">
+          <p>© {new Date().getFullYear()} Team Lens. All rights reserved.</p>
+          <div className="mt-2 space-x-4">
+            <Link to="#" className="hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="#" className="hover:text-foreground transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="#" className="hover:text-foreground transition-colors">
+              Contact Us
+            </Link>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
-  );
-};
-
-/**
- * Gets the appropriate title based on the current path
- */
-function getPageTitle(pathname: string): string {
-  if (pathname === '/login') return 'Sign in to your account';
-  if (pathname === '/signup') return 'Create a new account';
-  if (pathname === '/forgot-password') return 'Reset your password';
-  if (pathname === '/reset-password') return 'Set new password';
-  if (pathname.indexOf('/invite/') === 0) return 'Accept your invitation';
-  return 'Team Lens';
+  )
 }
 
-/**
- * Gets the appropriate subtitle based on the current path
- */
-function getPageSubtitle(pathname: string): string {
-  if (pathname === '/login') return 'Access your projects and teams';
-  if (pathname === '/signup') return 'Start managing your projects with Team Lens';
-  if (pathname === '/forgot-password') return 'We\'ll send you a link to reset your password';
-  if (pathname === '/reset-password') return 'Enter your new secure password';
-  if (pathname.indexOf('/invite/') === 0) return 'Complete your registration to join the team';
-  return '';
-}
-
-/**
- * Gets the home page for a user based on their role
- */
-function getUserHomePage(role?: string): string {
-  switch (role) {
-    case 'superAdmin':
-      return '/super-admin';
-    case 'orgAdmin':
-      return '/org-admin';
-    case 'teamMember':
-      return '/team';
-    case 'client':
-      return '/client';
-    default:
-      return '/login';
-  }
-}
-
-export default AuthLayout;
+export default AuthLayout
