@@ -23,18 +23,18 @@ import IntegrationsManagement from "./pages/superAdmin/IntegrationsManagement"
 import SuperAdminReports from "./pages/superAdmin/Reports"
 
 // Organization Admin Pages
-// import OrgDashboard from "./pages/orgAdmin/Dashboard"
-// import OrgUserManagement from "./pages/orgAdmin/UserManagement"
-// import TeamInvitations from "./pages/orgAdmin/TeamInvitations"
-// import ProjectManagement from "./pages/orgAdmin/ProjectManagement"
-// import OrgSettings from "./pages/orgAdmin/Settings"
-// import TeamCapacity from "./pages/orgAdmin/TeamCapacity"
-// import ScheduleManagement from "./pages/orgAdmin/ScheduleManagement"
-// import ProjectDetail from "./pages/orgAdmin/ProjectDetail"
-// import AutomatedReporting from "./pages/orgAdmin/AutomatedReporting"
-// import TaskManagement from "./pages/orgAdmin/TaskManagement"
-// import MeetingIntegration from "./pages/orgAdmin/MeetingIntegration"
-// import OrgChat from "./pages/orgAdmin/Chat"
+import OrgDashboard from "./pages/orgAdmin/Dashboard"
+import OrgUserManagement from "./pages/orgAdmin/UserManagement"
+import TeamInvitations from "./pages/orgAdmin/TeamInvitations"
+import ProjectManagement from "./pages/orgAdmin/ProjectManagement"
+import OrgSettings from "./pages/orgAdmin/Settings"
+import TeamCapacity from "./pages/orgAdmin/TeamCapacity"
+import ScheduleManagement from "./pages/orgAdmin/ScheduleManagement"
+import ProjectDetail from "./pages/orgAdmin/ProjectDetail"
+import AutomatedReporting from "./pages/orgAdmin/AutomatedReporting"
+import TaskManagement from "./pages/orgAdmin/TaskManagement"
+import MeetingIntegration from "./pages/orgAdmin/MeetingIntegration"
+import OrgChat from "./pages/orgAdmin/Chat"
 
 // Team Member Pages
 // import MyTasks from "./pages/teamMember/MyTasks"
@@ -152,7 +152,7 @@ function App() {
         </Route>
 
         {/* Organization Admin routes */}
-        {/* <Route path="/org-admin">
+        <Route path="/org-admin">
           <Route 
             index 
             element={
@@ -249,7 +249,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
-        </Route> */}
+        </Route>
 
         {/* Team Member routes */}
         {/* <Route path="/team">

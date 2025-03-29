@@ -1,703 +1,368 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-import {
-  Clock,
-  AlertTriangle,
-  Users,
-  Calendar,
-  ArrowUpRight,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Activity,
-  MessageSquare
-} from 'lucide-react';
-
-// Types for our data models
-interface Project {
-  id: string;
-  name: string;
-  status: 'on-track' | 'at-risk' | 'delayed';
-  progress: number;
-  tasks: {
-    total: number;
-    completed: number;
-    overdue: number;
-  };
-  team: string[];
-  deadline: string;
-  client: string;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  avatar: string;
-  capacity: number;
-  assigned: number;
-}
-
-interface TaskSummary {
-  status: string;
-  count: number;
-}
-
-interface RecentActivity {
-  id: string;
-  user: string;
-  action: string;
-  target: string;
-  timestamp: string;
-  avatar: string;
-}
-
-// Mock data for demonstration
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: 'E-commerce Platform Redesign',
-    status: 'on-track',
-    progress: 68,
-    tasks: { total: 45, completed: 30, overdue: 2 },
-    team: ['team1', 'team2'],
-    deadline: '2025-04-30',
-    client: 'GlobalShop Inc.'
-  },
-  {
-    id: '2',
-    name: 'Mobile App Development',
-    status: 'at-risk',
-    progress: 42,
-    tasks: { total: 78, completed: 32, overdue: 8 },
-    team: ['team3'],
-    deadline: '2025-05-15',
-    client: 'TechStartup Ltd.'
-  },
-  {
-    id: '3',
-    name: 'Marketing Campaign Analytics',
-    status: 'delayed',
-    progress: 35,
-    tasks: { total: 28, completed: 9, overdue: 7 },
-    team: ['team1', 'team4'],
-    deadline: '2025-04-10',
-    client: 'AdGenius Co.'
-  },
-  {
-    id: '4',
-    name: 'Customer Portal Enhancement',
-    status: 'on-track',
-    progress: 85,
-    tasks: { total: 34, completed: 29, overdue: 0 },
-    team: ['team2'],
-    deadline: '2025-06-01',
-    client: 'ServiceHub Ltd.'
-  }
-];
-
-const mockTeamMembers: TeamMember[] = [
-  { id: '1', name: 'Alex Smith', role: 'Frontend Developer', avatar: '/avatars/alex.jpg', capacity: 100, assigned: 85 },
-  { id: '2', name: 'Jamie Lee', role: 'UX Designer', avatar: '/avatars/jamie.jpg', capacity: 100, assigned: 110 },
-  { id: '3', name: 'Morgan Taylor', role: 'Project Manager', avatar: '/avatars/morgan.jpg', capacity: 100, assigned: 75 },
-  { id: '4', name: 'Casey Johnson', role: 'Backend Developer', avatar: '/avatars/casey.jpg', capacity: 100, assigned: 95 },
-];
-
-const mockTaskData: TaskSummary[] = [
-  { status: 'Completed', count: 143 },
-  { status: 'In Progress', count: 87 },
-  { status: 'Backlog', count: 62 },
-  { status: 'Overdue', count: 17 },
-];
-
-const mockTrendData = [
-  { month: 'Jan', completed: 41, planned: 45 },
-  { month: 'Feb', completed: 52, planned: 50 },
-  { month: 'Mar', completed: 48, planned: 55 },
-  { month: 'Apr', completed: 61, planned: 60 },
-  { month: 'May', completed: 55, planned: 62 },
-  { month: 'Jun', completed: 67, planned: 65 },
-];
-
-const mockRecentActivity: RecentActivity[] = [
-  { id: '1', user: 'Morgan Taylor', action: 'completed task', target: 'Design Homepage Wireframes', timestamp: '10 minutes ago', avatar: '/avatars/morgan.jpg' },
-  { id: '2', user: 'Alex Smith', action: 'commented on', target: 'API Integration Issue #34', timestamp: '45 minutes ago', avatar: '/avatars/alex.jpg' },
-  { id: '3', user: 'Jamie Lee', action: 'updated', target: 'User Journey Documentation', timestamp: '2 hours ago', avatar: '/avatars/jamie.jpg' },
-  { id: '4', user: 'Casey Johnson', action: 'resolved', target: 'Backend Authentication Bug', timestamp: '4 hours ago', avatar: '/avatars/casey.jpg' },
-];
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  BarChart3, Users, Gauge, Zap, AlertTriangle
+} from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 /**
- * Organization Admin Dashboard Component
- * 
- * Provides a comprehensive overview of organization projects, team capacity,
- * tasks, and recent activities with real-time metrics and interactive charts.
+ * Organization Admin Dashboard component
+ * Displays overview of project statuses, team performance, and key metrics
  */
-const OrgDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState('overview');
+const OrgDashboard = () => {
+  const { user } = useAuth()
+  
+  // Mock data for dashboard metrics
+  const dashboardMetrics = {
+    activeProjects: 8,
+    completedProjects: 12,
+    overdueTasks: 5,
+    teamMembers: 24,
+    upcomingDeadlines: 7,
+    sprintHealth: 85,
+    issuesReported: 4,
+    issuesResolved: 3,
+    teamVelocity: 78,
+    clientSatisfaction: 92
+  }
 
-  // Simulating data fetch on component mount
-  useEffect(() => {
-    // In a real implementation, this would fetch data from APIs
-    // For example:
-    // const fetchDashboardData = async () => {
-    //   try {
-    //     const projectsResponse = await api.getProjects();
-    //     const teamResponse = await api.getTeamCapacity();
-    //     // Handle responses and update state
-    //   } catch (error) {
-    //     console.error('Error fetching dashboard data:', error);
-    //   }
-    // };
-    // 
-    // fetchDashboardData();
-  }, []);
+  // Mock data for team capacity and velocity
+  const teamCapacityData = [
+    { name: "Development", capacity: 85, allocated: 72 },
+    { name: "Design", capacity: 65, allocated: 60 },
+    { name: "QA", capacity: 55, allocated: 50 },
+    { name: "DevOps", capacity: 45, allocated: 30 },
+    { name: "Management", capacity: 35, allocated: 25 }
+  ]
 
-  /**
-   * Helper function to get status icon based on project status
-   */
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'on-track':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'at-risk':
-        return <AlertCircle className="w-5 h-5 text-amber-500" />;
-      case 'delayed':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return <Activity className="w-5 h-5 text-blue-500" />;
+  // Mock data for recent activity
+  const recentActivity = [
+    { 
+      id: 1, 
+      action: "Task completed", 
+      description: "Login and authentication flow completed", 
+      user: "Sarah Chen", 
+      avatar: "https://ui-avatars.com/api/?name=Sarah+Chen&background=10b981&color=fff", 
+      time: "10 minutes ago",
+      project: "Customer Portal"
+    },
+    { 
+      id: 2, 
+      action: "Issue reported", 
+      description: "Mobile menu not responsive on iPhone 13", 
+      user: "Jason Patel", 
+      avatar: "https://ui-avatars.com/api/?name=Jason+Patel&background=6366f1&color=fff", 
+      time: "45 minutes ago",
+      project: "E-commerce App"
+    },
+    { 
+      id: 3, 
+      action: "Meeting scheduled", 
+      description: "Sprint planning for next week", 
+      user: "Michelle Wang", 
+      avatar: "https://ui-avatars.com/api/?name=Michelle+Wang&background=f43f5e&color=fff", 
+      time: "2 hours ago",
+      project: "Team Lens"
+    },
+    { 
+      id: 4, 
+      action: "Project milestone reached", 
+      description: "Alpha version ready for internal testing", 
+      user: "David Kim", 
+      avatar: "https://ui-avatars.com/api/?name=David+Kim&background=fb923c&color=fff", 
+      time: "Yesterday",
+      project: "Mobile Banking App"
     }
-  };
+  ]
 
-  /**
-   * Helper function to get status text color based on project status
-   */
-  const getStatusTextClass = (status: string) => {
-    switch (status) {
-      case 'on-track':
-        return 'text-green-500';
-      case 'at-risk':
-        return 'text-amber-500';
-      case 'delayed':
-        return 'text-red-500';
-      default:
-        return 'text-blue-500';
+  // Mock data for project statuses
+  const projectStatuses = [
+    { 
+      id: 1, 
+      name: "Team Lens Dashboard", 
+      progress: 85, 
+      status: "On Track", 
+      deadline: "Apr 15, 2025", 
+      team: "Development",
+      client: "Internal"
+    },
+    { 
+      id: 2, 
+      name: "E-commerce Mobile App", 
+      progress: 62, 
+      status: "At Risk", 
+      deadline: "May 3, 2025", 
+      team: "Mobile Dev",
+      client: "Retail Inc."
+    },
+    { 
+      id: 3, 
+      name: "Marketing Website Redesign", 
+      progress: 43, 
+      status: "On Track", 
+      deadline: "Jun 10, 2025", 
+      team: "Design",
+      client: "TechStart LLC"
+    },
+    { 
+      id: 4, 
+      name: "API Integration", 
+      progress: 22, 
+      status: "Behind", 
+      deadline: "Apr 30, 2025", 
+      team: "Backend",
+      client: "FinTech Solutions"
     }
-  };
-
-  /**
-   * Helper function to get progress bar color based on value
-   */
-  const getProgressColor = (value: number) => {
-    if (value >= 75) return 'bg-green-500';
-    if (value >= 50) return 'bg-blue-500';
-    if (value >= 25) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
-
-  /**
-   * Helper function to format dates for display
-   */
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
-
-  /**
-   * Helper function to calculate days remaining
-   */
-  const getDaysRemaining = (dateString: string) => {
-    const deadline = new Date(dateString).getTime();
-    const today = new Date().getTime();
-    const diff = deadline - today;
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
-  /**
-   * Calculate total tasks and completion rate
-   */
-  const calculateTaskMetrics = () => {
-    const total = mockTaskData.reduce((sum, item) => sum + item.count, 0);
-    const completed = mockTaskData.find(item => item.status === 'Completed')?.count || 0;
-    const completionRate = Math.round((completed / total) * 100);
-    return { total, completed, completionRate };
-  };
-
-  const taskMetrics = calculateTaskMetrics();
+  ]
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">Organization Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Overview of all projects, team capacity, and performance metrics
-        </p>
-      </header>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
-                Active Projects
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockProjects.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {mockProjects.filter(p => p.status === 'on-track').length} on track
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-2" />
-                Upcoming Deadlines
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockProjects.filter(p => getDaysRemaining(p.deadline) <= 14).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Within next 14 days</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              <div className="flex items-center">
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Overdue Tasks
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockProjects.reduce((sum, p) => sum + p.tasks.overdue, 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">Across all projects</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              <div className="flex items-center">
-                <Users className="w-4 h-4 mr-2" />
-                Team Capacity
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(mockTeamMembers.reduce((sum, member) => sum + member.assigned, 0) / 
-              (mockTeamMembers.length * 100) * 100)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Average utilization
-            </p>
-          </CardContent>
-        </Card>
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user?.name}. Here's what's happening across your projects.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline">Export Report</Button>
+          <Button>+ New Project</Button>
+        </div>
       </div>
 
-      {/* Alerts section */}
-      {mockProjects.some(p => p.status === 'at-risk' || p.status === 'delayed') && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Alerts</h2>
-          <div className="space-y-3">
-            {mockProjects
-              .filter(p => p.status === 'at-risk' || p.status === 'delayed')
-              .map(project => (
-                <Alert key={project.id} variant={project.status === 'delayed' ? 'destructive' : 'default'}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    {project.status === 'delayed' ? 'Project Delayed' : 'Project At Risk'}
-                  </AlertTitle>
-                  <AlertDescription>
-                    {project.name} - {project.client} - 
-                    {project.status === 'delayed' 
-                      ? ' Missed deadline, requires immediate attention.' 
-                      : ' May miss deadline, review required.'}
-                  </AlertDescription>
-                </Alert>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main content tabs */}
-      <Tabs 
-        value={selectedTab} 
-        onValueChange={setSelectedTab}
-        className="space-y-4"
-      >
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 md:grid-cols-3">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="performance">Team Performance</TabsTrigger>
         </TabsList>
         
         {/* Overview Tab Content */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Task Completion Chart */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Task Status</CardTitle>
-                <CardDescription>Distribution of tasks by current status</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={mockTaskData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="status" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#1e40af" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <div className="text-2xl font-bold">{dashboardMetrics.activeProjects}</div>
+                <p className="text-xs text-muted-foreground">
+                  +2 from last month
+                </p>
               </CardContent>
             </Card>
             
-            {/* Completion Trend Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle>Completion Trend</CardTitle>
-                <CardDescription>Completed vs. Planned tasks over time</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={mockTrendData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="completed" stroke="#3b82f6" />
-                      <Line type="monotone" dataKey="planned" stroke="#6b7280" strokeDasharray="5 5" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                <div className="text-2xl font-bold">{dashboardMetrics.teamMembers}</div>
+                <p className="text-xs text-muted-foreground">
+                  +3 new this month
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Overdue Tasks</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardMetrics.overdueTasks}</div>
+                <p className="text-xs text-muted-foreground">
+                  -2 from last week
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Sprint Health</CardTitle>
+                <Gauge className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardMetrics.sprintHealth}%</div>
+                <p className="text-xs text-muted-foreground">
+                  +5% increase
+                </p>
               </CardContent>
             </Card>
           </div>
-          
-          {/* Team Capacity Section */}
+
+          {/* Project Status Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Team Capacity</CardTitle>
-              <CardDescription>Current workload distribution across team members</CardDescription>
+              <CardTitle>Project Status Overview</CardTitle>
+              <CardDescription>Current status of your active projects</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {mockTeamMembers.map(member => (
-                  <div key={member.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-                          {member.name.charAt(0)}
+              <div className="space-y-6">
+                {projectStatuses.map(project => (
+                  <div key={project.id} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold">{project.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {project.client} • {project.team} • Due {project.deadline}
                         </div>
-                        <span>{member.name}</span>
-                        <span className="text-muted-foreground">({member.role})</span>
                       </div>
-                      <span className={member.assigned > 100 ? "text-red-500 font-medium" : ""}>{member.assigned}%</span>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        project.status === "On Track" 
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" 
+                          : project.status === "At Risk" 
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                      }`}>
+                        {project.status}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center text-sm mb-1">
+                        <span>{project.progress}% complete</span>
+                      </div>
+                      <Progress value={project.progress} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest actions across your projects</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {recentActivity.map(activity => (
+                  <div key={activity.id} className="flex items-start gap-4">
+                    <Avatar>
+                      <AvatarImage src={activity.avatar} alt={activity.user} />
+                      <AvatarFallback>{activity.user.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">{activity.user}</p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-semibold">{activity.action}</span>: {activity.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.time} • {activity.project}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Projects Tab Content */}
+        <TabsContent value="projects" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Active Projects</CardTitle>
+              <CardDescription>Detailed view of all ongoing projects</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Showing {dashboardMetrics.activeProjects} active projects
+              </p>
+              
+              <div className="space-y-6">
+                {/* Project list would go here - more detailed than the overview */}
+                <p className="text-center text-muted-foreground py-6">
+                  More detailed project listing would be displayed here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Team Performance Tab Content */}
+        <TabsContent value="performance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Capacity & Allocation</CardTitle>
+              <CardDescription>Current team workload and capacity limits</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {teamCapacityData.map((team, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">{team.name} Team</div>
+                      <div className="text-sm text-muted-foreground">
+                        {team.allocated}/{team.capacity} hours allocated
+                      </div>
                     </div>
                     <Progress 
-                      value={member.assigned} 
-                      max={100} 
-                      className={`h-2 ${member.assigned > 100 ? 'bg-red-200' : 'bg-slate-200'}`}
-                      indicatorClassName={member.assigned > 100 ? 'bg-red-500' : (
-                        member.assigned > 85 ? 'bg-amber-500' : 'bg-green-500'
-                      )}
+                      value={(team.allocated / team.capacity) * 100} 
+                      className={
+                        (team.allocated / team.capacity) > 0.9 
+                          ? "text-destructive" 
+                          : (team.allocated / team.capacity) > 0.7 
+                          ? "text-yellow-500" 
+                          : ""
+                      }
                     />
                   </div>
                 ))}
               </div>
-              <div className="mt-6 flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/organization/capacity')}
-                  className="flex items-center gap-1"
-                >
-                  Manage Team Capacity
-                  <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </div>
             </CardContent>
           </Card>
-          
-          {/* Recent Activity Feed */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates across all projects</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockRecentActivity.map(activity => (
-                  <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs">
-                      {activity.user.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm">
-                        <span className="font-medium">{activity.user}</span>{' '}
-                        {activity.action}{' '}
-                        <span className="font-medium">{activity.target}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex justify-center">
-                <Button variant="ghost" size="sm">
-                  View All Activity
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Projects Tab Content */}
-        <TabsContent value="projects" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">All Projects</h3>
-            <Button onClick={() => navigate('/organization/projects/new')}>
-              New Project
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {mockProjects.map(project => (
-              <Card key={project.id} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="flex-1 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-lg">{project.name}</h3>
-                        <div className="flex items-center">
-                          {getStatusIcon(project.status)}
-                          <span className={`text-xs ml-1 ${getStatusTextClass(project.status)}`}>
-                            {project.status.replace('-', ' ').toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDate(project.deadline)}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center mb-4">
-                      <div className="w-full">
-                        <div className="flex justify-between mb-1 text-sm">
-                          <span>Progress</span>
-                          <span>{project.progress}%</span>
-                        </div>
-                        <Progress 
-                          value={project.progress} 
-                          max={100} 
-                          className="h-2 bg-slate-200"
-                          indicatorClassName={getProgressColor(project.progress)}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Client</p>
-                        <p className="font-medium">{project.client}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Tasks</p>
-                        <p className="font-medium">
-                          {project.tasks.completed}/{project.tasks.total} completed
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Days Left</p>
-                        <p className={`font-medium ${getDaysRemaining(project.deadline) < 7 ? 'text-red-500' : ''}`}>
-                          {getDaysRemaining(project.deadline)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-row md:flex-col justify-around p-4 bg-muted/50 shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => navigate(`/organization/projects/${project.id}`)}
-                    >
-                      View
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => navigate(`/organization/projects/${project.id}/tasks`)}
-                    >
-                      Tasks
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => navigate(`/organization/projects/${project.id}/reports`)}
-                    >
-                      Reports
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => navigate(`/organization/projects/${project.id}/chat`)}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Velocity</CardTitle>
+                <CardDescription>Sprint points completed over time</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <Zap className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <p className="text-2xl font-bold">{dashboardMetrics.teamVelocity}</p>
+                  <p className="text-sm text-muted-foreground">Average points per sprint</p>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    (Detailed velocity chart would be displayed here)
+                  </p>
                 </div>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="flex justify-center mt-4">
-            <Button variant="outline">View All Projects</Button>
-          </div>
-        </TabsContent>
-        
-        {/* Teams Tab Content */}
-        <TabsContent value="teams" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Team Management</h3>
-            <Button onClick={() => navigate('/organization/teams/invite')}>
-              Invite Team Member
-            </Button>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Utilization</CardTitle>
-              <CardDescription>
-                Current workload and capacity across all teams
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Summary stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-muted rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">Total Members</h4>
-                    <p className="text-2xl font-bold">{mockTeamMembers.length}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Client Satisfaction</CardTitle>
+                <CardDescription>Based on recent feedback</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="relative inline-block">
+                    <Gauge className="h-24 w-24 text-primary" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold">{dashboardMetrics.clientSatisfaction}%</span>
+                    </div>
                   </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">Avg Utilization</h4>
-                    <p className="text-2xl font-bold">{Math.round(mockTeamMembers.reduce((sum, m) => sum + m.assigned, 0) / mockTeamMembers.length)}%</p>
-                  </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">Overallocated</h4>
-                    <p className="text-2xl font-bold">{mockTeamMembers.filter(m => m.assigned > 100).length}</p>
-                  </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">Available</h4>
-                    <p className="text-2xl font-bold">{mockTeamMembers.filter(m => m.assigned < 70).length}</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Based on feedback from 8 clients
+                  </p>
                 </div>
-                
-                {/* Team members listing */}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium">Team Member</th>
-                        <th className="text-left py-3 px-4 font-medium">Role</th>
-                        <th className="text-left py-3 px-4 font-medium">Assigned</th>
-                        <th className="text-left py-3 px-4 font-medium">Availability</th>
-                        <th className="text-right py-3 px-4 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {mockTeamMembers.map(member => (
-                        <tr key={member.id} className="hover:bg-muted/50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-                                {member.name.charAt(0)}
-                              </div>
-                              <span className="font-medium">{member.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-muted-foreground">{member.role}</td>
-                          <td className="py-3 px-4">{member.assigned}%</td>
-                          <td className="py-3 px-4">
-                            <div className="w-full max-w-[100px]">
-                              <Progress 
-                                value={100 - member.assigned} 
-                                max={100} 
-                                className="h-2 bg-slate-200"
-                                indicatorClassName={member.assigned > 100 
-                                  ? 'bg-red-500' 
-                                  : (member.assigned > 85 ? 'bg-amber-500' : 'bg-green-500')
-                                }
-                              />
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <Button variant="ghost" size="sm">View</Button>
-                            <Button variant="ghost" size="sm">Reassign</Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
-export default OrgDashboard;
+export default OrgDashboard

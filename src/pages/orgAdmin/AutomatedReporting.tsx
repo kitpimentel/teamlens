@@ -1,1196 +1,1866 @@
-// src/pages/organization/Reports.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Search,
-  FileText,
-  Download,
-  Share2,
-  Edit,
-  Trash2,
-  Plus,
-  Calendar,
-  Clock,
-  Users,
-  Mail,
-  BarChart3,
-  PieChart as PieChartIcon,
-  LineChart as LineChartIcon,
-  CheckCircle2,
-  ArrowUpRight,
-  RefreshCw,
-  Repeat,
-  AlertCircle,
-  FileSpreadsheet,
-  FilePdf,
-  Link,
-  Copy,
-  MoreVertical
-} from 'lucide-react';
-
-// Types for our data models
-interface Report {
-  id: string;
-  title: string;
-  description: string;
-  type: 'project' | 'team' | 'client' | 'financial';
-  format: 'dashboard' | 'pdf' | 'spreadsheet';
-  schedule: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'manual';
-  lastGenerated: string;
-  nextGeneration: string;
-  recipients: string[];
-  createdBy: string;
-  status: 'active' | 'paused';
-  categories: string[];
-}
-
-interface ReportTemplate {
-  id: string;
-  name: string;
-  description: string;
-  type: 'project' | 'team' | 'client' | 'financial';
-  previewImage: string;
-  popularTags: string[];
-}
-
-interface ReportHistory {
-  id: string;
-  reportId: string;
-  date: string;
-  size: string;
-  format: 'pdf' | 'spreadsheet';
-  views: number;
-  status: 'completed' | 'error' | 'generating';
-}
-
-// Mock data
-const mockReports: Report[] = [
-  {
-    id: '1',
-    title: 'Weekly Project Status Report',
-    description: 'Summary of all active projects with task status and team performance metrics',
-    type: 'project',
-    format: 'dashboard',
-    schedule: 'weekly',
-    lastGenerated: '2025-03-28T09:30:00Z',
-    nextGeneration: '2025-04-04T09:30:00Z',
-    recipients: ['team@example.com', 'admin@example.com'],
-    createdBy: 'Alex Johnson',
-    status: 'active',
-    categories: ['project status', 'task tracking', 'team performance']
-  },
-  {
-    id: '2',
-    title: 'Monthly Team Capacity Report',
-    description: 'Detailed analysis of team workload, capacity, and resource allocation',
-    type: 'team',
-    format: 'pdf',
-    schedule: 'monthly',
-    lastGenerated: '2025-03-15T14:45:00Z',
-    nextGeneration: '2025-04-15T14:45:00Z',
-    recipients: ['hr@example.com', 'management@example.com'],
-    createdBy: 'Taylor Rodriguez',
-    status: 'active',
-    categories: ['resource allocation', 'team capacity', 'workload distribution']
-  },
-  {
-    id: '3',
-    title: 'Client Delivery Summary',
-    description: 'Overview of deliverables and milestones for client projects',
-    type: 'client',
-    format: 'spreadsheet',
-    schedule: 'weekly',
-    lastGenerated: '2025-03-27T11:15:00Z',
-    nextGeneration: '2025-04-03T11:15:00Z',
-    recipients: ['clients@example.com', 'account-managers@example.com'],
-    createdBy: 'Jordan Lee',
-    status: 'paused',
-    categories: ['client deliverables', 'milestones', 'account management']
-  },
-  {
-    id: '4',
-    title: 'Quarterly Financial Performance',
-    description: 'Financial metrics including project budgets, actuals, and forecasts',
-    type: 'financial',
-    format: 'dashboard',
-    schedule: 'quarterly',
-    lastGenerated: '2025-03-31T16:00:00Z',
-    nextGeneration: '2025-06-30T16:00:00Z',
-    recipients: ['finance@example.com', 'executives@example.com'],
-    createdBy: 'Casey Morgan',
-    status: 'active',
-    categories: ['financial performance', 'budget tracking', 'forecasting']
-  }
-];
-
-const mockTemplates: ReportTemplate[] = [
-  {
-    id: '1',
-    name: 'Project Performance Dashboard',
-    description: 'Comprehensive view of project health, task completion, and timeline adherence',
-    type: 'project',
-    previewImage: '/images/templates/project-dashboard.jpg',
-    popularTags: ['charts', 'KPIs', 'timeline']
-  },
-  {
-    id: '2',
-    name: 'Team Workload Analysis',
-    description: 'Visualize team capacity, allocation, and workload distribution',
-    type: 'team',
-    previewImage: '/images/templates/team-workload.jpg',
-    popularTags: ['capacity', 'resource management', 'allocation']
-  },
-  {
-    id: '3',
-    name: 'Client Status Report',
-    description: 'Client-friendly summary of project progress, milestones, and deliverables',
-    type: 'client',
-    previewImage: '/images/templates/client-status.jpg',
-    popularTags: ['milestones', 'deliverables', 'timeline']
-  },
-  {
-    id: '4',
-    name: 'Financial Summary',
-    description: 'Budget vs. actual tracking with forecasting and variance analysis',
-    type: 'financial',
-    previewImage: '/images/templates/financial-summary.jpg',
-    popularTags: ['budget', 'forecast', 'variance']
-  },
-  {
-    id: '5',
-    name: 'Sprint Performance Report',
-    description: 'Track sprint velocity, completion rate, and issue resolution metrics',
-    type: 'project',
-    previewImage: '/images/templates/sprint-performance.jpg',
-    popularTags: ['agile', 'sprints', 'velocity']
-  },
-  {
-    id: '6',
-    name: 'Resource Utilization Report',
-    description: 'Analysis of resource utilization across teams and projects',
-    type: 'team',
-    previewImage: '/images/templates/resource-utilization.jpg',
-    popularTags: ['utilization', 'efficiency', 'allocation']
-  }
-];
-
-const mockReportHistory: ReportHistory[] = [
-  {
-    id: '1',
-    reportId: '1',
-    date: '2025-03-28T09:30:00Z',
-    size: '2.4 MB',
-    format: 'pdf',
-    views: 12,
-    status: 'completed'
-  },
-  {
-    id: '2',
-    reportId: '1',
-    date: '2025-03-21T09:30:00Z',
-    size: '2.3 MB',
-    format: 'pdf',
-    views: 8,
-    status: 'completed'
-  },
-  {
-    id: '3',
-    reportId: '2',
-    date: '2025-03-15T14:45:00Z',
-    size: '4.1 MB',
-    format: 'pdf',
-    views: 15,
-    status: 'completed'
-  },
-  {
-    id: '4',
-    reportId: '3',
-    date: '2025-03-27T11:15:00Z',
-    size: '1.8 MB',
-    format: 'spreadsheet',
-    views: 6,
-    status: 'completed'
-  },
-  {
-    id: '5',
-    reportId: '4',
-    date: '2025-03-31T16:00:00Z',
-    size: '3.2 MB',
-    format: 'pdf',
-    views: 24,
-    status: 'completed'
-  },
-  {
-    id: '6',
-    reportId: '1',
-    date: '2025-04-04T09:30:00Z',
-    size: '- MB',
-    format: 'pdf',
-    views: 0,
-    status: 'generating'
-  }
-];
-
-// Metrics for demonstration
-const projectMetricsData = [
-  { name: 'Jan', completed: 24, planned: 30 },
-  { name: 'Feb', completed: 28, planned: 25 },
-  { name: 'Mar', completed: 26, planned: 28 },
-  { name: 'Apr', completed: 32, planned: 30 },
-  { name: 'May', completed: 29, planned: 32 },
-  { name: 'Jun', completed: 35, planned: 34 }
-];
-
-const teamCapacityData = [
-  { name: 'Team A', capacity: 100, utilized: 85 },
-  { name: 'Team B', capacity: 100, utilized: 92 },
-  { name: 'Team C', capacity: 100, utilized: 78 },
-  { name: 'Team D', capacity: 100, utilized: 104 }
-];
-
-const taskStatusData = [
-  { name: 'Completed', value: 145 },
-  { name: 'In Progress', value: 87 },
-  { name: 'Not Started', value: 43 },
-  { name: 'Blocked', value: 18 }
-];
-
-const COLORS = ['#4ade80', '#60a5fa', '#e4e4e7', '#f97316'];
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { 
+  PlusCircle, 
+  FileDown, 
+  FileCog, 
+  Calendar, 
+  Clock, 
+  Mail, 
+  MoreHorizontal, 
+  Copy, 
+  Trash2, 
+  CheckCircle, 
+  FileText, 
+  Send, 
+  Download, 
+  Clock4, 
+  Pencil,
+  AlertTriangle
+} from "lucide-react"
+import { toast } from "sonner"
 
 /**
- * Automated Reporting Component
- * 
- * Provides tools to create, manage, and distribute automated reports
- * with scheduling capabilities, template selection, and delivery options.
+ * Interface for report template
  */
-const AutomatedReporting: React.FC = () => {
-  const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState('reports');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
-  const [isPreviewReportOpen, setIsPreviewReportOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [filterType, setFilterType] = useState<string | null>(null);
+/**
+ * Type for report template section types
+ */
+type SectionType = "progress" | "tasks" | "time" | "team" | "issues" | "risks" | "budget" | "custom" | "kpis";
 
-  // Filter reports based on search query and type filter
-  const filteredReports = mockReports.filter(report => 
-    (report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    report.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (filterType === null || report.type === filterType)
-  );
+/**
+ * Type for report template types
+ */
+type TemplateType = "project" | "team" | "client" | "executive" | "custom";
 
-  // Filter templates based on search query and type filter
-  const filteredTemplates = mockTemplates.filter(template => 
-    (template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (filterType === null || template.type === filterType)
-  );
+/**
+ * Type for report format types
+ */
+type FormatType = "pdf" | "excel" | "web";
 
-  /**
-   * Show success alert with given message
-   */
-  const showSuccess = (message: string) => {
-    setSuccessMessage(message);
-    setShowSuccessAlert(true);
-    setTimeout(() => setShowSuccessAlert(false), 5000);
-  };
+/**
+ * Type for template status
+ */
+type StatusType = "active" | "draft" | "archived";
 
-  /**
-   * Format date for display
-   */
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not scheduled';
+/**
+ * Type for schedule frequency
+ */
+type FrequencyType = "daily" | "weekly" | "biweekly" | "monthly" | "custom" | "manual";
+
+/**
+ * Interface for report template
+ */
+interface ReportTemplate {
+  id: string
+  name: string
+  description: string
+  projectId?: string
+  projectName?: string
+  type: TemplateType
+  format: FormatType
+  status: StatusType
+  createdAt: string
+  createdBy: string
+  lastModified: string
+  lastModifiedBy: string
+  lastGenerated?: string
+  sections: {
+    id: string
+    name: string
+    type: SectionType
+    enabled: boolean
+  }[]
+  schedule?: {
+    frequency: FrequencyType
+    day?: string // day of week or month
+    time?: string // time of day
+    nextScheduled?: string // next scheduled generation
+  }
+  recipients?: {
+    id: string
+    name: string
+    email: string
+    role: string
+  }[]
+}
+
+/**
+ * Interface for generated report
+ */
+interface GeneratedReport {
+  id: string
+  templateId: string
+  templateName: string
+  projectId?: string
+  projectName?: string
+  format: "pdf" | "excel" | "web"
+  generatedAt: string
+  generatedBy: string
+  downloadUrl: string
+  viewUrl: string
+  shared: boolean
+  size: string
+  recipients?: {
+    id: string
+    name: string
+    email: string
+    sentAt?: string
+  }[]
+}
+
+/**
+ * Automated Reporting component
+ * Allows organization admins to create, schedule, and manage automated reports
+ */
+const AutomatedReporting = () => {
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState("templates")
+  const [createTemplateDialogOpen, setCreateTemplateDialogOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null)
+  const [selectedReport, setSelectedReport] = useState<GeneratedReport | null>(null)
+
+  // Form state for new template
+  const [newTemplate, setNewTemplate] = useState({
+    name: "",
+    description: "",
+    projectId: "",
+    type: "project",
+    format: "pdf",
+    sections: [
+      { id: "progress", name: "Project Progress", type: "progress" as const, enabled: true },
+      { id: "tasks", name: "Tasks Overview", type: "tasks" as const, enabled: true },
+      { id: "time", name: "Timeline & Milestones", type: "time" as const, enabled: true },
+      { id: "team", name: "Team Performance", type: "team" as const, enabled: true },
+      { id: "issues", name: "Issues & Blockers", type: "issues" as const, enabled: false },
+      { id: "risks", name: "Risks Assessment", type: "risks" as const, enabled: false },
+      { id: "budget", name: "Budget vs. Actual", type: "budget" as const, enabled: false },
+      { id: "kpis", name: "Key Metrics & KPIs", type: "kpis" as const, enabled: true }
+    ]
+  })
+
+  // Form state for scheduling
+  const [schedule, setSchedule] = useState({
+    frequency: "weekly",
+    day: "monday",
+    time: "09:00",
+    recipients: [] as string[]
+  })
+
+  // Form state for sharing
+  const [shareForm, setShareForm] = useState({
+    recipients: [] as string[],
+    message: ""
+  })
+
+  // Mock projects data
+  const projects = [
+    { id: "proj-1", name: "Team Lens Dashboard" },
+    { id: "proj-2", name: "E-commerce Mobile App" },
+    { id: "proj-3", name: "Marketing Website Redesign" },
+    { id: "proj-4", name: "API Integration" },
+    { id: "proj-5", name: "CRM Implementation" }
+  ]
+
+  // Mock team members/recipients data
+  const teamMembers = [
+    {
+      id: "tm-1",
+      name: "Sarah Chen",
+      email: "sarah.chen@example.com",
+      role: "Lead Developer",
+      avatar: "https://ui-avatars.com/api/?name=Sarah+Chen&background=10b981&color=fff"
+    },
+    {
+      id: "tm-2",
+      name: "Jason Patel",
+      email: "jason.patel@example.com",
+      role: "UX Designer",
+      avatar: "https://ui-avatars.com/api/?name=Jason+Patel&background=6366f1&color=fff"
+    },
+    {
+      id: "tm-3",
+      name: "Michelle Wang",
+      email: "michelle.wang@example.com",
+      role: "Project Manager",
+      avatar: "https://ui-avatars.com/api/?name=Michelle+Wang&background=f43f5e&color=fff"
+    },
+    {
+      id: "tm-4",
+      name: "David Kim",
+      email: "david.kim@example.com",
+      role: "QA Engineer",
+      avatar: "https://ui-avatars.com/api/?name=David+Kim&background=fb923c&color=fff"
+    },
+    {
+      id: "cl-1",
+      name: "Alex Rodriguez",
+      email: "alex.rodriguez@retailinc.example.com",
+      role: "Client - Retail Inc.",
+      avatar: "https://ui-avatars.com/api/?name=Alex+Rodriguez&background=ec4899&color=fff"
+    },
+    {
+      id: "cl-2",
+      name: "Jessica Lee",
+      email: "jessica.lee@techstart.example.com",
+      role: "Client - TechStart LLC",
+      avatar: "https://ui-avatars.com/api/?name=Jessica+Lee&background=14b8a6&color=fff"
+    }
+  ]
+
+  // Mock report templates data
+  const [reportTemplates, setReportTemplates] = useState<ReportTemplate[]>([
+    {
+      id: "template-1",
+      name: "Weekly Project Status Report",
+      description: "Comprehensive weekly status report with progress, tasks, and team performance metrics.",
+      projectId: "proj-1",
+      projectName: "Team Lens Dashboard",
+      type: "project",
+      format: "pdf",
+      status: "active",
+      createdAt: "2025-02-15T10:30:00Z",
+      createdBy: "Michelle Wang",
+      lastModified: "2025-03-10T14:45:00Z",
+      lastModifiedBy: "Michelle Wang",
+      lastGenerated: "2025-03-28T09:00:00Z",
+      sections: [
+        { id: "progress", name: "Project Progress", type: "progress", enabled: true },
+        { id: "tasks", name: "Tasks Overview", type: "tasks", enabled: true },
+        { id: "time", name: "Timeline & Milestones", type: "time", enabled: true },
+        { id: "team", name: "Team Performance", type: "team", enabled: true },
+        { id: "issues", name: "Issues & Blockers", type: "issues", enabled: true },
+        { id: "kpis", name: "Key Metrics & KPIs", type: "kpis", enabled: true }
+      ],
+      schedule: {
+        frequency: "weekly",
+        day: "friday",
+        time: "16:00",
+        nextScheduled: "2025-04-05T16:00:00Z"
+      },
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          role: "Project Manager"
+        },
+        {
+          id: "tm-1",
+          name: "Sarah Chen",
+          email: "sarah.chen@example.com",
+          role: "Lead Developer"
+        }
+      ]
+    },
+    {
+      id: "template-2",
+      name: "E-commerce App Client Update",
+      description: "Client-facing report focusing on progress, completed features, and upcoming milestones.",
+      projectId: "proj-2",
+      projectName: "E-commerce Mobile App",
+      type: "client",
+      format: "pdf",
+      status: "active",
+      createdAt: "2025-02-20T11:15:00Z",
+      createdBy: "Michelle Wang",
+      lastModified: "2025-03-15T13:30:00Z",
+      lastModifiedBy: "Michelle Wang",
+      lastGenerated: "2025-03-25T10:00:00Z",
+      sections: [
+        { id: "progress", name: "Project Progress", type: "progress", enabled: true },
+        { id: "time", name: "Timeline & Milestones", type: "time", enabled: true },
+        { id: "kpis", name: "Key Metrics & KPIs", type: "kpis", enabled: true },
+        { id: "budget", name: "Budget vs. Actual", type: "budget", enabled: true }
+      ],
+      schedule: {
+        frequency: "biweekly",
+        day: "tuesday",
+        time: "10:00",
+        nextScheduled: "2025-04-08T10:00:00Z"
+      },
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          role: "Project Manager"
+        },
+        {
+          id: "cl-1",
+          name: "Alex Rodriguez",
+          email: "alex.rodriguez@retailinc.example.com",
+          role: "Client - Retail Inc."
+        }
+      ]
+    },
+    {
+      id: "template-3",
+      name: "Development Team Performance",
+      description: "Team-focused report with velocity, task completion rate, and individual metrics.",
+      type: "team",
+      format: "web",
+      status: "active",
+      createdAt: "2025-03-01T09:45:00Z",
+      createdBy: "Sarah Chen",
+      lastModified: "2025-03-01T09:45:00Z",
+      lastModifiedBy: "Sarah Chen",
+      lastGenerated: "2025-03-29T08:00:00Z",
+      sections: [
+        { id: "team", name: "Team Performance", type: "team", enabled: true },
+        { id: "tasks", name: "Tasks Overview", type: "tasks", enabled: true },
+        { id: "issues", name: "Issues & Blockers", type: "issues", enabled: true }
+      ],
+      schedule: {
+        frequency: "weekly",
+        day: "monday",
+        time: "08:00",
+        nextScheduled: "2025-04-05T08:00:00Z"
+      },
+      recipients: [
+        {
+          id: "tm-1",
+          name: "Sarah Chen",
+          email: "sarah.chen@example.com",
+          role: "Lead Developer"
+        },
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          role: "Project Manager"
+        }
+      ]
+    },
+    {
+      id: "template-4",
+      name: "Executive Dashboard",
+      description: "High-level summary of all projects, focusing on key metrics and financial data.",
+      type: "executive",
+      format: "pdf",
+      status: "active",
+      createdAt: "2025-03-05T14:20:00Z",
+      createdBy: "Michelle Wang",
+      lastModified: "2025-03-20T11:30:00Z",
+      lastModifiedBy: "Michelle Wang",
+      lastGenerated: "2025-03-31T07:00:00Z",
+      sections: [
+        { id: "progress", name: "Project Progress", type: "progress", enabled: true },
+        { id: "kpis", name: "Key Metrics & KPIs", type: "kpis", enabled: true },
+        { id: "budget", name: "Budget vs. Actual", type: "budget", enabled: true },
+        { id: "risks", name: "Risks Assessment", type: "risks", enabled: true }
+      ],
+      schedule: {
+        frequency: "monthly",
+        day: "1",
+        time: "07:00",
+        nextScheduled: "2025-05-01T07:00:00Z"
+      },
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          role: "Project Manager"
+        }
+      ]
+    },
+    {
+      id: "template-5",
+      name: "Website Redesign Analytics",
+      description: "Custom report focusing on website analytics, SEO metrics, and user feedback.",
+      projectId: "proj-3",
+      projectName: "Marketing Website Redesign",
+      type: "custom",
+      format: "excel",
+      status: "draft",
+      createdAt: "2025-03-15T16:00:00Z",
+      createdBy: "Jason Patel",
+      lastModified: "2025-03-15T16:00:00Z",
+      lastModifiedBy: "Jason Patel",
+      sections: [
+        { id: "progress", name: "Project Progress", type: "progress", enabled: true },
+        { id: "custom", name: "Analytics Dashboard", type: "custom", enabled: true },
+        { id: "kpis", name: "Key Metrics & KPIs", type: "kpis", enabled: true }
+      ]
+    }
+  ])
+
+  // Mock generated reports data
+  const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([
+    {
+      id: "report-1",
+      templateId: "template-1",
+      templateName: "Weekly Project Status Report",
+      projectId: "proj-1",
+      projectName: "Team Lens Dashboard",
+      format: "pdf",
+      generatedAt: "2025-03-28T09:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "2.4 MB",
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-28T09:05:00Z"
+        },
+        {
+          id: "tm-1",
+          name: "Sarah Chen",
+          email: "sarah.chen@example.com",
+          sentAt: "2025-03-28T09:05:00Z"
+        }
+      ]
+    },
+    {
+      id: "report-2",
+      templateId: "template-1",
+      templateName: "Weekly Project Status Report",
+      projectId: "proj-1",
+      projectName: "Team Lens Dashboard",
+      format: "pdf",
+      generatedAt: "2025-03-21T09:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "2.3 MB",
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-21T09:05:00Z"
+        },
+        {
+          id: "tm-1",
+          name: "Sarah Chen",
+          email: "sarah.chen@example.com",
+          sentAt: "2025-03-21T09:05:00Z"
+        }
+      ]
+    },
+    {
+      id: "report-3",
+      templateId: "template-2",
+      templateName: "E-commerce App Client Update",
+      projectId: "proj-2",
+      projectName: "E-commerce Mobile App",
+      format: "pdf",
+      generatedAt: "2025-03-25T10:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "3.1 MB",
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-25T10:05:00Z"
+        },
+        {
+          id: "cl-1",
+          name: "Alex Rodriguez",
+          email: "alex.rodriguez@retailinc.example.com",
+          sentAt: "2025-03-25T10:05:00Z"
+        }
+      ]
+    },
+    {
+      id: "report-4",
+      templateId: "template-3",
+      templateName: "Development Team Performance",
+      format: "web",
+      generatedAt: "2025-03-29T08:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "1.8 MB",
+      recipients: [
+        {
+          id: "tm-1",
+          name: "Sarah Chen",
+          email: "sarah.chen@example.com",
+          sentAt: "2025-03-29T08:05:00Z"
+        },
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-29T08:05:00Z"
+        }
+      ]
+    },
+    {
+      id: "report-5",
+      templateId: "template-4",
+      templateName: "Executive Dashboard",
+      format: "pdf",
+      generatedAt: "2025-03-31T07:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "4.2 MB",
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-31T07:05:00Z"
+        }
+      ]
+    },
+    {
+      id: "report-6",
+      templateId: "template-2",
+      templateName: "E-commerce App Client Update",
+      projectId: "proj-2",
+      projectName: "E-commerce Mobile App",
+      format: "pdf",
+      generatedAt: "2025-03-11T10:00:00Z",
+      generatedBy: "System (Automated)",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: true,
+      size: "2.9 MB",
+      recipients: [
+        {
+          id: "tm-3",
+          name: "Michelle Wang",
+          email: "michelle.wang@example.com",
+          sentAt: "2025-03-11T10:05:00Z"
+        },
+        {
+          id: "cl-1",
+          name: "Alex Rodriguez",
+          email: "alex.rodriguez@retailinc.example.com",
+          sentAt: "2025-03-11T10:05:00Z"
+        }
+      ]
+    }
+  ])
+
+  // Handle creating a new template
+  const handleCreateTemplate = () => {
+    // Validate form
+    if (!newTemplate.name || !newTemplate.description) {
+      toast.error("Please fill in all required fields")
+      return
+    }
     
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
+    // Find project if projectId is provided
+    const project = newTemplate.projectId ? projects.find(p => p.id === newTemplate.projectId) : undefined
+    
+    // Create new template with properly typed sections
+    const createdTemplate: ReportTemplate = {
+      id: `template-${Date.now()}`,
+      name: newTemplate.name,
+      description: newTemplate.description,
+      projectId: newTemplate.projectId || undefined,
+      projectName: project?.name,
+      type: newTemplate.type as "project" | "team" | "client" | "executive" | "custom",
+      format: newTemplate.format as "pdf" | "excel" | "web",
+      status: "draft" as "draft",
+      createdAt: new Date().toISOString(),
+      createdBy: user?.name || "System",
+      lastModified: new Date().toISOString(),
+      lastModifiedBy: user?.name || "System",
+      sections: newTemplate.sections.map(section => ({
+        id: section.id,
+        name: section.name,
+        type: section.type,
+        enabled: section.enabled
+      }))
+    }
+    
+    // Add to templates
+    setReportTemplates([createdTemplate, ...reportTemplates])
+    setCreateTemplateDialogOpen(false)
+    
+    // Reset form
+    setNewTemplate({
+      name: "",
+      description: "",
+      projectId: "",
+      type: "project",
+      format: "pdf",
+      sections: [
+        { id: "progress", name: "Project Progress", type: "progress" as const, enabled: true },
+        { id: "tasks", name: "Tasks Overview", type: "tasks" as const, enabled: true },
+        { id: "time", name: "Timeline & Milestones", type: "time" as const, enabled: true },
+        { id: "team", name: "Team Performance", type: "team" as const, enabled: true },
+        { id: "issues", name: "Issues & Blockers", type: "issues" as const, enabled: false },
+        { id: "risks", name: "Risks Assessment", type: "risks" as const, enabled: false },
+        { id: "budget", name: "Budget vs. Actual", type: "budget" as const, enabled: false },
+        { id: "kpis", name: "Key Metrics & KPIs", type: "kpis" as const, enabled: true }
+      ]
+    })
+    
+    toast.success(`Report template "${newTemplate.name}" created successfully`)
+  }
+
+  // Handle scheduling a report
+  const handleScheduleReport = () => {
+    if (!selectedTemplate) return
+    
+    // Validate form
+    if (!schedule.frequency || !schedule.time) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    
+    // Calculate next scheduled date
+    const now = new Date()
+    let nextScheduled = new Date(now)
+    
+    switch (schedule.frequency) {
+      case "daily":
+        nextScheduled.setDate(now.getDate() + 1)
+        break
+      case "weekly":
+        // Get day of week index (0 = Sunday, 1 = Monday, etc.)
+        const dayMap: Record<string, number> = {
+          sunday: 0, monday: 1, tuesday: 2, wednesday: 3, 
+          thursday: 4, friday: 5, saturday: 6
+        }
+        const targetDay = dayMap[schedule.day]
+        const currentDay = now.getDay()
+        const daysUntilTarget = (targetDay + 7 - currentDay) % 7
+        nextScheduled.setDate(now.getDate() + (daysUntilTarget === 0 ? 7 : daysUntilTarget))
+        break
+      case "biweekly":
+        // Similar to weekly but add 14 days
+        const biweeklyDayMap: Record<string, number> = {
+          sunday: 0, monday: 1, tuesday: 2, wednesday: 3, 
+          thursday: 4, friday: 5, saturday: 6
+        }
+        const biweeklyTargetDay = biweeklyDayMap[schedule.day]
+        const biweeklyCurrentDay = now.getDay()
+        const biweeklyDaysUntilTarget = (biweeklyTargetDay + 7 - biweeklyCurrentDay) % 7
+        nextScheduled.setDate(now.getDate() + (biweeklyDaysUntilTarget === 0 ? 14 : biweeklyDaysUntilTarget + 7))
+        break
+      case "monthly":
+        // Set to next month, same day
+        nextScheduled.setMonth(now.getMonth() + 1)
+        nextScheduled.setDate(parseInt(schedule.day))
+        break
+      case "custom":
+        // For custom, just set to tomorrow as a placeholder
+        nextScheduled.setDate(now.getDate() + 1)
+        break
+      case "manual":
+        // No scheduling for manual
+        nextScheduled = new Date(0)
+        break
+    }
+    
+    // Set the time
+    if (schedule.time && schedule.frequency !== "manual") {
+      const [hours, minutes] = schedule.time.split(":").map(Number)
+      nextScheduled.setHours(hours, minutes, 0, 0)
+    }
+    
+    // Find recipients
+    const scheduledRecipients = schedule.recipients.map(recipientId => {
+      const member = teamMembers.find(m => m.id === recipientId)
+      return {
+        id: member?.id || "",
+        name: member?.name || "",
+        email: member?.email || "",
+        role: member?.role || ""
+      }
+    }).filter(r => r.id !== "")
+    
+    // Update template with schedule
+    const updatedTemplates = reportTemplates.map(template => {
+      if (template.id === selectedTemplate.id) {
+        // Create a properly typed updated template
+        const updatedTemplate: ReportTemplate = {
+          ...template,
+          status: "active" as StatusType,
+          lastModified: new Date().toISOString(),
+          lastModifiedBy: user?.name || "System",
+          schedule: schedule.frequency === "manual" ? undefined : {
+            frequency: schedule.frequency as FrequencyType,
+            day: schedule.day,
+            time: schedule.time,
+            nextScheduled: nextScheduled.toISOString()
+          },
+          recipients: scheduledRecipients.length > 0 ? scheduledRecipients : undefined
+        }
+        return updatedTemplate
+      }
+      return template
+    })
+    
+    setReportTemplates(updatedTemplates)
+    setScheduleDialogOpen(false)
+    
+    toast.success(schedule.frequency === "manual" 
+      ? "Report unscheduled and set to manual generation"
+      : `Report scheduled for ${schedule.frequency} generation`)
+  }
+
+  // Handle generating a report manually
+  const handleGenerateReport = (template: ReportTemplate) => {
+    // Create new report
+    const newReport: GeneratedReport = {
+      id: `report-${Date.now()}`,
+      templateId: template.id,
+      templateName: template.name,
+      projectId: template.projectId,
+      projectName: template.projectName,
+      format: template.format,
+      generatedAt: new Date().toISOString(),
+      generatedBy: user?.name || "Manual Generation",
+      downloadUrl: "#",
+      viewUrl: "#",
+      shared: false,
+      size: `${(Math.random() * 3 + 1).toFixed(1)} MB`,
+      recipients: template.recipients
+    }
+    
+    // Add to reports
+    setGeneratedReports([newReport, ...generatedReports])
+    
+    // Update template lastGenerated
+    const updatedTemplates = reportTemplates.map(t => {
+      if (t.id === template.id) {
+        return {
+          ...t,
+          lastGenerated: new Date().toISOString()
+        }
+      }
+      return t
+    })
+    
+    setReportTemplates(updatedTemplates)
+    
+    toast.success(`Report "${template.name}" generated successfully`)
+  }
+
+  // Handle sharing a report
+  const handleShareReport = () => {
+    if (!selectedReport) return
+    
+    // Validate form
+    if (shareForm.recipients.length === 0) {
+      toast.error("Please select at least one recipient")
+      return
+    }
+    
+    // Find recipients
+    const reportRecipients = shareForm.recipients.map(recipientId => {
+      const member = teamMembers.find(m => m.id === recipientId)
+      return {
+        id: member?.id || "",
+        name: member?.name || "",
+        email: member?.email || "",
+        sentAt: new Date().toISOString()
+      }
+    }).filter(r => r.id !== "")
+    
+    // Update report with recipients
+    const updatedReports = generatedReports.map(report => {
+      if (report.id === selectedReport.id) {
+        const existingRecipients = report.recipients || []
+        const newRecipientIds = reportRecipients.map(r => r.id)
+        
+        // Filter out recipients that are already in the list
+        const filteredExistingRecipients = existingRecipients.filter(
+          r => !newRecipientIds.includes(r.id)
+        )
+        
+        return {
+          ...report,
+          shared: true,
+          recipients: [...filteredExistingRecipients, ...reportRecipients]
+        }
+      }
+      return report
+    })
+    
+    setGeneratedReports(updatedReports)
+    setShareDialogOpen(false)
+    
+    // Reset form
+    setShareForm({
+      recipients: [],
+      message: ""
+    })
+    
+    toast.success(`Report shared with ${reportRecipients.length} recipient${reportRecipients.length !== 1 ? 's' : ''}`)
+  }
+
+  // Handle duplicating a template
+  const handleDuplicateTemplate = (template: ReportTemplate) => {
+    // Create a deep copy with proper typing
+    const duplicatedTemplate: ReportTemplate = {
+      ...JSON.parse(JSON.stringify(template)),
+      id: `template-${Date.now()}`,
+      name: `${template.name} (Copy)`,
+      status: "draft" as "draft",
+      createdAt: new Date().toISOString(),
+      createdBy: user?.name || "System",
+      lastModified: new Date().toISOString(),
+      lastModifiedBy: user?.name || "System",
+      lastGenerated: undefined,
+      schedule: undefined
+    }
+    
+    setReportTemplates([duplicatedTemplate, ...reportTemplates])
+    toast.success(`Template "${template.name}" duplicated successfully`)
+  }
+
+  // Handle archiving a template
+  const handleArchiveTemplate = (templateId: string) => {
+    const updatedTemplates = reportTemplates.map(template => {
+      if (template.id === templateId) {
+        return {
+          ...template,
+          status: "archived" as "archived",
+          lastModified: new Date().toISOString(),
+          lastModifiedBy: user?.name || "System",
+          schedule: undefined
+        }
+      }
+      return template
+    })
+    
+    setReportTemplates(updatedTemplates)
+    toast.success("Template archived successfully")
+  }
+
+  // Handle activating a template
+  const handleActivateTemplate = (templateId: string) => {
+    const updatedTemplates = reportTemplates.map(template => {
+      if (template.id === templateId) {
+        return {
+          ...template,
+          status: "active" as "active",
+          lastModified: new Date().toISOString(),
+          lastModifiedBy: user?.name || "System"
+        }
+      }
+      return template
+    })
+    
+    setReportTemplates(updatedTemplates)
+    toast.success("Template activated successfully")
+  }
+
+  // Handle deleting a template
+  const handleDeleteTemplate = (templateId: string) => {
+    const updatedTemplates = reportTemplates.filter(template => template.id !== templateId)
+    setReportTemplates(updatedTemplates)
+    toast.success("Template deleted successfully")
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  // Format date and time for display
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
       day: 'numeric',
-      hour: '2-digit',
+      hour: 'numeric',
       minute: '2-digit'
-    }).format(date);
-  };
-
-  /**
-   * Get color for report type badge
-   */
-  const getReportTypeColor = (type: string) => {
-    switch (type) {
-      case 'project':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
-      case 'team':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-100';
-      case 'client':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'financial':
-        return 'bg-amber-100 text-amber-800 hover:bg-amber-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
-    }
-  };
-
-  /**
-   * Get icon for report format
-   */
-  const getFormatIcon = (format: string) => {
-    switch (format) {
-      case 'dashboard':
-        return <BarChart3 className="h-4 w-4" />;
-      case 'pdf':
-        return <FilePdf className="h-4 w-4" />;
-      case 'spreadsheet':
-        return <FileSpreadsheet className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
-  /**
-   * Get schedule label
-   */
-  const getScheduleLabel = (schedule: string) => {
-    switch (schedule) {
-      case 'daily':
-        return 'Daily';
-      case 'weekly':
-        return 'Weekly';
-      case 'monthly':
-        return 'Monthly';
-      case 'quarterly':
-        return 'Quarterly';
-      case 'manual':
-        return 'Manual';
-      default:
-        return 'Custom';
-    }
-  };
-
-  /**
-   * Handle report creation
-   */
-  const handleCreateReport = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In a real implementation, this would call an API to create a report
-    setIsCreateReportOpen(false);
-    showSuccess('Report created successfully');
-  };
-
-  /**
-   * Handle report generation
-   */
-  const handleGenerateReport = (report: Report) => {
-    // In a real implementation, this would call an API to generate a report
-    showSuccess(`Generating ${report.title}. You will be notified when it's ready.`);
-  };
-
-  /**
-   * Handle report preview
-   */
-  const handlePreviewReport = (report: Report) => {
-    setSelectedReport(report);
-    setIsPreviewReportOpen(true);
-  };
-
-  /**
-   * Generate a shareable link
-   */
-  const handleShareReport = (report: Report) => {
-    // In a real implementation, this would generate a secure shareable link
-    const link = `https://teamlens.example.com/shared-reports/${report.id}`;
-    navigator.clipboard.writeText(link);
-    showSuccess('Shareable link copied to clipboard');
-  };
-
-  /**
-   * Handle report download
-   */
-  const handleDownloadReport = (reportHistory: ReportHistory) => {
-    // In a real implementation, this would trigger a download of the report
-    showSuccess('Report download started');
-  };
+    })
+  }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">Automated Reporting</h1>
-        <p className="text-muted-foreground mt-2">
-          Create, schedule, and manage automated reports for projects, teams, and clients
-        </p>
-      </header>
-
-      {/* Success Alert */}
-      {showSuccessAlert && (
-        <Alert className="mb-6 bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>{successMessage}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Top Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search reports..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Automated Reporting</h1>
+          <p className="text-muted-foreground">
+            Create, schedule, and share customized reports
+          </p>
         </div>
-        <div className="flex gap-2 items-center">
-          <Select value={filterType || ''} onValueChange={(value) => setFilterType(value || null)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
-              <SelectItem value="project">Project</SelectItem>
-              <SelectItem value="team">Team</SelectItem>
-              <SelectItem value="client">Client</SelectItem>
-              <SelectItem value="financial">Financial</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Dialog open={isCreateReportOpen} onOpenChange={setIsCreateReportOpen}>
+
+        <div className="flex flex-wrap gap-2">
+          <Dialog open={createTemplateDialogOpen} onOpenChange={setCreateTemplateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-1 ml-auto">
-                <Plus className="h-4 w-4" />
-                Create Report
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Template
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="sm:max-w-[650px]">
               <DialogHeader>
-                <DialogTitle>Create New Report</DialogTitle>
+                <DialogTitle>Create Report Template</DialogTitle>
                 <DialogDescription>
-                  Configure your automated report settings, schedule, and delivery options
+                  Design a new report template with customized sections
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateReport}>
-                <div className="grid gap-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="report-title">Report Title</Label>
-                      <Input
-                        id="report-title"
-                        placeholder="e.g. Weekly Project Status Report"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="report-type">Report Type</Label>
-                      <Select defaultValue="project">
-                        <SelectTrigger id="report-type">
-                          <SelectValue placeholder="Select report type" />
+              
+              <div className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto pr-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="template-name">Template Name*</Label>
+                  <Input
+                    id="template-name"
+                    placeholder="Enter template name"
+                    value={newTemplate.name}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="template-description">Description*</Label>
+                  <Textarea
+                    id="template-description"
+                    placeholder="Enter template description"
+                    rows={2}
+                    value={newTemplate.description}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="template-type">Report Type</Label>
+                    <Select 
+                      value={newTemplate.type} 
+                      onValueChange={(value) => setNewTemplate({ ...newTemplate, type: value })}
+                    >
+                      <SelectTrigger id="template-type">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="project">Project Report</SelectItem>
+                        <SelectItem value="team">Team Report</SelectItem>
+                        <SelectItem value="client">Client Report</SelectItem>
+                        <SelectItem value="executive">Executive Report</SelectItem>
+                        <SelectItem value="custom">Custom Report</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="template-format">Format</Label>
+                    <Select 
+                      value={newTemplate.format} 
+                      onValueChange={(value) => setNewTemplate({ ...newTemplate, format: value })}
+                    >
+                      <SelectTrigger id="template-format">
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF Document</SelectItem>
+                        <SelectItem value="excel">Excel Spreadsheet</SelectItem>
+                        <SelectItem value="web">Web Link (HTML)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {newTemplate.type === "project" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="template-project">Project (Optional)</Label>
+                      <Select 
+                        value={newTemplate.projectId} 
+                        onValueChange={(value) => setNewTemplate({ ...newTemplate, projectId: value })}
+                      >
+                        <SelectTrigger id="template-project">
+                          <SelectValue placeholder="Select project" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="project">Project</SelectItem>
-                          <SelectItem value="team">Team</SelectItem>
-                          <SelectItem value="client">Client</SelectItem>
-                          <SelectItem value="financial">Financial</SelectItem>
+                          <SelectItem value="">All Projects</SelectItem>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="report-description">Description</Label>
-                    <Input
-                      id="report-description"
-                      placeholder="Brief description of the report purpose"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Report Format</Label>
-                      <RadioGroup defaultValue="dashboard" className="flex gap-4">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="dashboard" id="format-dashboard" />
-                          <Label htmlFor="format-dashboard" className="cursor-pointer">Dashboard</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="pdf" id="format-pdf" />
-                          <Label htmlFor="format-pdf" className="cursor-pointer">PDF</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="spreadsheet" id="format-spreadsheet" />
-                          <Label htmlFor="format-spreadsheet" className="cursor-pointer">Spreadsheet</Label>
-                        </div>
-                      </RadioGroup>
+                  )}
+                </div>
+                
+                <div className="grid gap-2 mt-2">
+                  <Label>Report Sections</Label>
+                  <div className="border rounded-md">
+                    <div className="grid grid-cols-5 gap-4 p-3 bg-muted/30 rounded-t-md border-b">
+                      <div className="col-span-2">Section Name</div>
+                      <div className="col-span-2">Type</div>
+                      <div className="text-right">Include</div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="report-schedule">Schedule</Label>
-                      <Select defaultValue="weekly">
-                        <SelectTrigger id="report-schedule">
-                          <SelectValue placeholder="Select schedule" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                          <SelectItem value="manual">Manual (On-demand)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Report Contents</Label>
-                    <div className="border rounded-md p-4 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="metrics" defaultChecked />
-                        <label
-                          htmlFor="metrics"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Key Metrics & KPIs
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="tasks" defaultChecked />
-                        <label
-                          htmlFor="tasks"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Task Status
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="timeline" defaultChecked />
-                        <label
-                          htmlFor="timeline"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Timeline & Milestones
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="risks" />
-                        <label
-                          htmlFor="risks"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Risks & Issues
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="budget" />
-                        <label
-                          htmlFor="budget"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Budget vs. Actual
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Delivery Options</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="email-delivery" className="cursor-pointer">Email Delivery</Label>
-                          <Switch id="email-delivery" defaultChecked />
+                    
+                    <div className="p-2 divide-y">
+                      {newTemplate.sections.map((section, index) => (
+                        <div key={section.id} className="grid grid-cols-5 gap-4 p-2 items-center">
+                          <div className="col-span-2 font-medium">{section.name}</div>
+                          <div className="col-span-2 text-muted-foreground">
+                            {section.type.charAt(0).toUpperCase() + section.type.slice(1)}
+                          </div>
+                          <div className="text-right">
+                            <Checkbox
+                              checked={section.enabled}
+                              onCheckedChange={(checked) => {
+                                const updatedSections = [...newTemplate.sections]
+                                updatedSections[index].enabled = checked === true
+                                setNewTemplate({ ...newTemplate, sections: updatedSections })
+                              }}
+                            />
+                          </div>
                         </div>
-                        
-                        <Input
-                          placeholder="recipient@example.com, another@example.com"
-                        />
-                        <div className="text-xs text-muted-foreground">
-                          Separate multiple email addresses with commas
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="dashboard-publish" className="cursor-pointer">Publish to Dashboard</Label>
-                          <Switch id="dashboard-publish" defaultChecked />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="client-access" className="cursor-pointer">Client Access</Label>
-                          <Switch id="client-access" />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="notify-team" className="cursor-pointer">Notify Team Members</Label>
-                          <Switch id="notify-team" defaultChecked />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsCreateReportOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Report</Button>
-                </DialogFooter>
-              </form>
+              </div>
+              
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleCreateTemplate}>Create Template</Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Main content tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 md:grid-cols-3">
-          <TabsTrigger value="reports" className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            My Reports
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            Templates
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            Report History
-          </TabsTrigger>
+      <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="generated">Generated Reports</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled Reports</TabsTrigger>
         </TabsList>
         
-        {/* My Reports Tab */}
-        <TabsContent value="reports">
-          <div className="grid grid-cols-1 gap-4">
-            {filteredReports.map(report => (
-              <Card key={report.id} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="flex-grow p-6">
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {report.title}
-                          {report.status === 'paused' && (
-                            <Badge variant="outline" className="bg-gray-100 text-gray-800">Paused</Badge>
-                          )}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{report.description}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={getReportTypeColor(report.type)}>
-                          {report.type.charAt(0).toUpperCase() + report.type.slice(1)}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          {getFormatIcon(report.format)}
-                          {report.format.charAt(0).toUpperCase() + report.format.slice(1)}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Repeat className="h-3 w-3" />
-                          {getScheduleLabel(report.schedule)}
-                        </Badge>
-                      </div>
+        {/* Templates Tab */}
+        <TabsContent value="templates" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {reportTemplates.filter(t => t.status !== "archived").map((template) => (
+              <Card key={template.id} className="flex flex-col h-full">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      <CardDescription className="line-clamp-2">{template.description}</CardDescription>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Last Generated</p>
-                        <p className="font-medium">{formatDate(report.lastGenerated)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Next Generation</p>
-                        <p className="font-medium">{formatDate(report.nextGeneration)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Recipients</p>
-                        <p className="font-medium">{report.recipients.length} recipients</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {report.categories.map((category, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {category}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-row md:flex-col justify-around p-4 bg-muted/50 shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => handlePreviewReport(report)}
-                    >
-                      Preview
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => handleGenerateReport(report)}
-                    >
-                      Generate Now
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1"
-                      onClick={() => handleShareReport(report)}
-                    >
-                      Share
-                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {template.status === "draft" && (
+                          <DropdownMenuItem onClick={() => handleActivateTemplate(template.id)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Activate Template
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleGenerateReport(template)}>
+                          <FileDown className="mr-2 h-4 w-4" />
+                          Generate Report
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedTemplate(template)
+                          
+                          // Set default schedule based on template
+                          setSchedule({
+                            frequency: template.schedule?.frequency || "weekly",
+                            day: template.schedule?.day || "monday",
+                            time: template.schedule?.time || "09:00",
+                            recipients: template.recipients?.map(r => r.id) || []
+                          })
+                          
+                          setScheduleDialogOpen(true)
+                        }}>
+                          <Clock className="mr-2 h-4 w-4" />
+                          Schedule
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicateTemplate(template)}>
+                          <Copy className="mr-2 h-4 w-4" />
                           Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem onClick={() => handleArchiveTemplate(template.id)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-          
-          {filteredReports.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 bg-muted/20 rounded-lg">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No reports found</h3>
-              <p className="text-muted-foreground text-sm mb-4">Try adjusting your search or filter criteria</p>
-              <Button onClick={() => setIsCreateReportOpen(true)}>Create Your First Report</Button>
-            </div>
-          )}
-        </TabsContent>
-        
-        {/* Templates Tab */}
-        <TabsContent value="templates">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map(template => (
-              <Card key={template.id} className="overflow-hidden flex flex-col">
-                <div className="aspect-video bg-muted flex items-center justify-center">
-                  {/* In a real app, this would be the template preview image */}
-                  <div className="flex flex-col items-center justify-center p-4">
-                    {template.type === 'project' && <BarChart3 className="h-16 w-16 text-blue-500" />}
-                    {template.type === 'team' && <Users className="h-16 w-16 text-purple-500" />}
-                    {template.type === 'client' && <PieChartIcon className="h-16 w-16 text-green-500" />}
-                    {template.type === 'financial' && <LineChartIcon className="h-16 w-16 text-amber-500" />}
-                    <span className="text-xs text-muted-foreground mt-2">Preview Image</span>
-                  </div>
-                </div>
-                
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{template.name}</CardTitle>
-                    <Badge className={getReportTypeColor(template.type)}>
-                      {template.type.charAt(0).toUpperCase() + template.type.slice(1)}
-                    </Badge>
-                  </div>
-                  <CardDescription className="line-clamp-2">
-                    {template.description}
-                  </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="flex-grow">
-                  <div className="flex flex-wrap gap-2">
-                    {template.popularTags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
+                <CardContent className="py-2 flex-grow">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">
+                        {template.type === "project" ? "Project Report" :
+                         template.type === "team" ? "Team Report" :
+                         template.type === "client" ? "Client Report" :
+                         template.type === "executive" ? "Executive Report" : "Custom Report"}
                       </Badge>
-                    ))}
+                      
+                      <Badge variant="outline">
+                        {template.format === "pdf" ? "PDF" :
+                         template.format === "excel" ? "Excel" : "Web"}
+                      </Badge>
+                      
+                      <Badge variant={
+                        template.status === "active" ? "default" :
+                        template.status === "draft" ? "outline" : "secondary"
+                      }>
+                        {template.status.charAt(0).toUpperCase() + template.status.slice(1)}
+                      </Badge>
+                    </div>
+                    
+                    {template.projectName && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Project: </span>
+                        {template.projectName}
+                      </div>
+                    )}
+                    
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Sections: </span>
+                      {template.sections.filter(s => s.enabled).length} enabled
+                    </div>
+                    
+                    {template.schedule && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Schedule: </span>
+                        {template.schedule.frequency.charAt(0).toUpperCase() + template.schedule.frequency.slice(1)}
+                        {template.schedule.frequency === "weekly" || template.schedule.frequency === "biweekly" ? 
+                          ` (${template.schedule.day?.charAt(0).toUpperCase()}${template.schedule.day?.slice(1) || ''}s at ${template.schedule.time})` : 
+                          template.schedule.frequency === "monthly" ?
+                          ` (Day ${template.schedule.day} at ${template.schedule.time})` :
+                          template.schedule.frequency === "daily" ?
+                          ` (at ${template.schedule.time})` : ''
+                        }
+                      </div>
+                    )}
+                    
+                    {template.lastGenerated && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Last generated: </span>
+                        {formatDate(template.lastGenerated)}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
                 
-                <CardFooter className="border-t bg-muted/10 pt-4">
-                  <Button className="w-full" onClick={() => {
-                    setIsCreateReportOpen(true);
-                    // In a real app, this would pre-populate the create form with template data
-                  }}>
-                    Use Template
-                  </Button>
+                <CardFooter className="pt-2">
+                  <div className="flex justify-between items-center w-full">
+                    <div className="text-xs text-muted-foreground">
+                      Created {formatDate(template.createdAt)}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleGenerateReport(template)}>
+                        <FileDown className="mr-1 h-3 w-3" />
+                        Generate
+                      </Button>
+                      
+                      {template.status === "draft" ? (
+                        <Button size="sm" onClick={() => handleActivateTemplate(template.id)}>
+                          Activate
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => {
+                          setSelectedTemplate(template)
+                          
+                          // Set default schedule based on template
+                          setSchedule({
+                            frequency: template.schedule?.frequency || "weekly",
+                            day: template.schedule?.day || "monday",
+                            time: template.schedule?.time || "09:00",
+                            recipients: template.recipients?.map(r => r.id) || []
+                          })
+                          
+                          setScheduleDialogOpen(true)
+                        }}>
+                          <Clock className="mr-1 h-3 w-3" />
+                          Schedule
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardFooter>
               </Card>
             ))}
+            
+            {/* Create Template Card */}
+            <Card className="flex flex-col h-full border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 flex-grow">
+                <FileCog className="h-10 w-10 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-1">Create New Template</h3>
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  Design a custom report template with the sections you need
+                </p>
+                <Button onClick={() => setCreateTemplateDialogOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Template
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-          
-          {filteredTemplates.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 bg-muted/20 rounded-lg">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No templates found</h3>
-              <p className="text-muted-foreground text-sm">Try adjusting your search or filter criteria</p>
-            </div>
-          )}
-        </TabsContent>
-        
-        {/* History Tab */}
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Generation History</CardTitle>
-              <CardDescription>
-                View and download previously generated reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
+
+          {/* Archived Templates Section */}
+          {reportTemplates.filter(t => t.status === "archived").length > 0 && (
+            <>
+              <div className="flex items-center mt-8 mb-4">
+                <div className="w-full h-px bg-border"></div>
+                <span className="px-4 text-muted-foreground font-medium">Archived Templates</span>
+                <div className="w-full h-px bg-border"></div>
+              </div>
+              
+              <div className="rounded-md border overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium">Report Name</th>
-                      <th className="text-left py-3 px-4 font-medium">Date</th>
-                      <th className="text-left py-3 px-4 font-medium">Format</th>
-                      <th className="text-left py-3 px-4 font-medium">Size</th>
-                      <th className="text-left py-3 px-4 font-medium">Views</th>
-                      <th className="text-left py-3 px-4 font-medium">Status</th>
-                      <th className="text-right py-3 px-4 font-medium">Actions</th>
+                    <tr className="bg-muted/50">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Template Name</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Type</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Format</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Last Modified</th>
+                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
-                    {mockReportHistory.map(history => {
-                      const report = mockReports.find(r => r.id === history.reportId);
-                      
-                      return (
-                        <tr key={history.id} className="hover:bg-muted/50">
-                          <td className="py-3 px-4">
-                            <div className="font-medium">{report?.title}</div>
-                            <div className="text-xs text-muted-foreground">{report?.type}</div>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            {formatDate(history.date)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
-                              {getFormatIcon(history.format)}
-                              <span>{history.format.charAt(0).toUpperCase() + history.format.slice(1)}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            {history.size}
-                          </td>
-                          <td className="py-3 px-4">
-                            {history.views}
-                          </td>
-                          <td className="py-3 px-4">
-                            {history.status === 'completed' && (
-                              <Badge variant="outline" className="bg-green-100 text-green-800">
-                                Completed
-                              </Badge>
-                            )}
-                            {history.status === 'generating' && (
-                              <Badge variant="outline" className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                                <RefreshCw className="h-3 w-3 animate-spin" />
-                                Generating
-                              </Badge>
-                            )}
-                            {history.status === 'error' && (
-                              <Badge variant="outline" className="bg-red-100 text-red-800 flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Error
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            {history.status === 'completed' ? (
-                              <div className="flex justify-end gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleDownloadReport(history)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <Download className="h-3 w-3" />
-                                  Download
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {/* View report */}}
-                                  className="flex items-center gap-1"
-                                >
-                                  View
-                                </Button>
-                              </div>
-                            ) : history.status === 'generating' ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                disabled
-                              >
-                                Processing...
+                  <tbody>
+                    {reportTemplates.filter(t => t.status === "archived").map((template) => (
+                      <tr key={template.id} className="border-t hover:bg-muted/50">
+                        <td className="py-3 px-4">
+                          <div className="font-medium">{template.name}</div>
+                          <div className="text-xs text-muted-foreground">{template.description}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {template.type.charAt(0).toUpperCase() + template.type.slice(1)}
+                          {template.projectName && <div className="text-xs text-muted-foreground">{template.projectName}</div>}
+                        </td>
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          {template.format.toUpperCase()}
+                        </td>
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          {formatDate(template.lastModified)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
                               </Button>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="text-red-500"
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleActivateTemplate(template.id)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Restore Template
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicateTemplate(template)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteTemplate(template.id)}
+                                className="text-destructive focus:text-destructive"
                               >
-                                Retry
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Permanently
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              
-              {mockReportHistory.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No report history</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Your report generation history will appear here
-                  </p>
-                </div>
-              )}
+            </>
+          )}
+        </TabsContent>
+        
+        {/* Generated Reports Tab */}
+        <TabsContent value="generated">
+          <Card className="mb-6">
+            <CardHeader className="pb-2">
+              <CardTitle>Generated Reports</CardTitle>
+              <CardDescription>View and share reports generated from your templates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Report</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Template</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden lg:table-cell">Format</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Generated</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden lg:table-cell">Shared With</th>
+                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generatedReports.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-10 text-center text-muted-foreground">
+                          No reports have been generated yet
+                        </td>
+                      </tr>
+                    ) : (
+                      generatedReports.map((report) => (
+                        <tr key={report.id} className="border-t hover:bg-muted/50">
+                          <td className="py-3 px-4">
+                            <div className="font-medium">{report.templateName}</div>
+                            {report.projectName && (
+                              <div className="text-xs text-muted-foreground">{report.projectName}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 hidden md:table-cell">
+                            {report.templateName}
+                          </td>
+                          <td className="py-3 px-4 hidden lg:table-cell">
+                            <Badge variant="outline">
+                              {report.format.toUpperCase()}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div>{formatDate(report.generatedAt)}</div>
+                            <div className="text-xs text-muted-foreground">{report.generatedBy}</div>
+                          </td>
+                          <td className="py-3 px-4 hidden lg:table-cell">
+                            {report.recipients && report.recipients.length > 0 ? (
+                              <div className="flex flex-col text-sm">
+                                <div className="flex -space-x-2">
+                                  {report.recipients.slice(0, 3).map((recipient, idx) => {
+                                    const member = teamMembers.find(m => m.id === recipient.id)
+                                    return (
+                                      <Avatar key={idx} className="h-6 w-6 border-2 border-background">
+                                        <AvatarImage src={member?.avatar} alt={recipient.name} />
+                                        <AvatarFallback>{recipient.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                      </Avatar>
+                                    )
+                                  })}
+                                  {report.recipients.length > 3 && (
+                                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs border-2 border-background">
+                                      +{report.recipients.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  {report.recipients.length} recipient{report.recipients.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Not shared</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="outline" size="icon">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    View Report
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download ({report.size})
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedReport(report)
+                                    setShareForm({
+                                      recipients: report.recipients?.map(r => r.id) || [],
+                                      message: ""
+                                    })
+                                    setShareDialogOpen(true)
+                                  }}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    {report.recipients && report.recipients.length > 0 ? "Share Again" : "Share"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Copy Sharing Link
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Report
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* Scheduled Reports Tab */}
+        <TabsContent value="scheduled">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {reportTemplates.filter(t => t.schedule && t.status === "active").map((template) => (
+              <Card key={template.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{template.name}</CardTitle>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedTemplate(template)
+                          
+                          // Set default schedule based on template
+                          setSchedule({
+                            frequency: template.schedule?.frequency || "weekly",
+                            day: template.schedule?.day || "monday",
+                            time: template.schedule?.time || "09:00",
+                            recipients: template.recipients?.map(r => r.id) || []
+                          })
+                          
+                          setScheduleDialogOpen(true)
+                        }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Schedule
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateReport(template)}>
+                          <FileDown className="mr-2 h-4 w-4" />
+                          Generate Now
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedTemplate(template)
+                          
+                          // Set manual schedule
+                          setSchedule({
+                            frequency: "manual",
+                            day: "",
+                            time: "",
+                            recipients: []
+                          })
+                          
+                          setScheduleDialogOpen(true)
+                        }}>
+                          <Clock4 className="mr-2 h-4 w-4" />
+                          Unschedule
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <CardDescription className="line-clamp-2">{template.description}</CardDescription>
+                </CardHeader>
+                
+                <CardContent className="py-2">
+                  <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-sm">
+                        <span className="font-medium">Frequency: </span>
+                        {template.schedule?.frequency ? template.schedule.frequency.charAt(0).toUpperCase() + template.schedule.frequency.slice(1) : ''}
+                        {template.schedule?.frequency === "weekly" || template.schedule?.frequency === "biweekly" ? 
+                          ` (${template.schedule.day ? (template.schedule.day.charAt(0).toUpperCase() + template.schedule.day.slice(1)) : ''}s)` : 
+                          template.schedule?.frequency === "monthly" ?
+                          ` (Day ${template.schedule.day || ''})` : ''
+                        }
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-sm">
+                        <span className="font-medium">Time: </span>
+                        {template.schedule?.time}
+                      </div>
+                    </div>
+                    
+                    {template.schedule?.nextScheduled && (
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        <div className="text-sm">
+                          <span className="font-medium">Next Run: </span>
+                          {formatDateTime(template.schedule.nextScheduled)}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {template.recipients && template.recipients.length > 0 && (
+                      <div className="flex items-start gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground mt-1" />
+                        <div>
+                          <div className="text-sm font-medium mb-1">Recipients:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {template.recipients.map((recipient) => (
+                              <div key={recipient.id} className="flex items-center gap-1 text-xs bg-muted rounded-full px-2 py-1">
+                                <Avatar className="h-4 w-4">
+                                  <AvatarImage src={teamMembers.find(m => m.id === recipient.id)?.avatar} alt={recipient.name} />
+                                  <AvatarFallback>{recipient.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                </Avatar>
+                                <span>{recipient.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {template.lastGenerated && (
+                      <div className="text-xs text-muted-foreground">
+                        Last generated: {formatDateTime(template.lastGenerated)}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="pt-0">
+                  <div className="w-full flex justify-between">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setSelectedTemplate(template)
+                      
+                      // Set manual schedule
+                      setSchedule({
+                        frequency: "manual",
+                        day: "",
+                        time: "",
+                        recipients: []
+                      })
+                      
+                      setScheduleDialogOpen(true)
+                    }}>
+                      Unschedule
+                    </Button>
+                    
+                    <Button size="sm" onClick={() => handleGenerateReport(template)}>
+                      <FileDown className="mr-1 h-3 w-3" />
+                      Generate Now
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+            
+            {reportTemplates.filter(t => t.schedule && t.status === "active").length === 0 && (
+              <Card className="col-span-1 md:col-span-3">
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">No Scheduled Reports</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You haven't scheduled any reports yet
+                  </p>
+                  <Button onClick={() => setCreateTemplateDialogOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Template
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
-
-      {/* Report Preview Dialog */}
-      <Dialog open={isPreviewReportOpen} onOpenChange={setIsPreviewReportOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+      
+      {/* Schedule Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Report Preview</DialogTitle>
+            <DialogTitle>
+              {schedule.frequency === "manual" ? "Unschedule Report" : "Schedule Report"}
+            </DialogTitle>
             <DialogDescription>
-              {selectedReport?.title}
+              {selectedTemplate?.name}
+              {schedule.frequency !== "manual" && " - Set the frequency and recipients for this report"}
             </DialogDescription>
           </DialogHeader>
           
-          {selectedReport && (
-            <div className="space-y-6 py-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">{selectedReport.title}</h2>
-                <div className="text-sm text-muted-foreground">
-                  Generated: {formatDate(selectedReport.lastGenerated)}
+          <div className="grid gap-4 py-4">
+            {schedule.frequency !== "manual" ? (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Select
+                    value={schedule.frequency}
+                    onValueChange={(value) => setSchedule({ ...schedule, frequency: value })}
+                  >
+                    <SelectTrigger id="frequency">
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="manual">Manual Only (Unschedule)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {(schedule.frequency === "weekly" || schedule.frequency === "biweekly") && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="day">Day of Week</Label>
+                    <Select
+                      value={schedule.day}
+                      onValueChange={(value) => setSchedule({ ...schedule, day: value })}
+                    >
+                      <SelectTrigger id="day">
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monday">Monday</SelectItem>
+                        <SelectItem value="tuesday">Tuesday</SelectItem>
+                        <SelectItem value="wednesday">Wednesday</SelectItem>
+                        <SelectItem value="thursday">Thursday</SelectItem>
+                        <SelectItem value="friday">Friday</SelectItem>
+                        <SelectItem value="saturday">Saturday</SelectItem>
+                        <SelectItem value="sunday">Sunday</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {schedule.frequency === "monthly" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="day">Day of Month</Label>
+                    <Select
+                      value={schedule.day}
+                      onValueChange={(value) => setSchedule({ ...schedule, day: value })}
+                    >
+                      <SelectTrigger id="day">
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 28 }, (_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>
+                            {i + 1}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="time">Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={schedule.time}
+                    onChange={(e) => setSchedule({ ...schedule, time: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="recipients">Recipients</Label>
+                  <div className="border rounded-md p-4 max-h-[200px] overflow-y-auto">
+                    {teamMembers.map((member) => (
+                      <div key={member.id} className="flex items-center gap-2 mb-2">
+                        <Checkbox
+                          id={`member-${member.id}`}
+                          checked={schedule.recipients.includes(member.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSchedule({ 
+                                ...schedule, 
+                                recipients: [...schedule.recipients, member.id] 
+                              })
+                            } else {
+                              setSchedule({ 
+                                ...schedule, 
+                                recipients: schedule.recipients.filter(id => id !== member.id) 
+                              })
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`member-${member.id}`} className="flex items-center gap-2 text-sm font-normal cursor-pointer">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                            <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div>{member.name}</div>
+                            <div className="text-xs text-muted-foreground">{member.email}</div>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-yellow-50 dark:bg-yellow-950 rounded-md p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-yellow-800 dark:text-yellow-100">
+                      Unschedule Report
+                    </h4>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                      This will remove the automated schedule for this report. You can still generate it manually when needed.
+                    </p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Tasks Completed</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">68%</div>
-                    <p className="text-xs text-muted-foreground">
-                      +4% from last period
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">On-Time Delivery</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">92%</div>
-                    <p className="text-xs text-muted-foreground">
-                      +2% from last period
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Team Capacity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">85%</div>
-                    <p className="text-xs text-muted-foreground">
-                      -3% from last period
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Completion Metrics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={projectMetricsData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="completed" name="Completed Tasks" fill="#4f46e5" />
-                        <Bar dataKey="planned" name="Planned Tasks" fill="#94a3b8" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Team Capacity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={teamCapacityData}
-                          layout="vertical"
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" domain={[0, 120]} />
-                          <YAxis type="category" dataKey="name" />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="utilized" name="Capacity Utilized (%)" fill="#8884d8" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Task Status Distribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={taskStatusData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, value }) => `${name}: ${value}`}
-                          >
-                            {taskStatusData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Key Risks & Issues</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b text-left">
-                        <th className="pb-2 font-medium">Description</th>
-                        <th className="pb-2 font-medium">Impact</th>
-                        <th className="pb-2 font-medium">Status</th>
-                        <th className="pb-2 font-medium">Owner</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      <tr>
-                        <td className="py-3">Resource availability for Project X</td>
-                        <td className="py-3">
-                          <Badge className="bg-amber-100 text-amber-800">Medium</Badge>
-                        </td>
-                        <td className="py-3">In Progress</td>
-                        <td className="py-3">Alex Johnson</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3">Integration issue with third-party API</td>
-                        <td className="py-3">
-                          <Badge className="bg-red-100 text-red-800">High</Badge>
-                        </td>
-                        <td className="py-3">Open</td>
-                        <td className="py-3">Sam Williams</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3">Potential delay in client feedback</td>
-                        <td className="py-3">
-                          <Badge className="bg-blue-100 text-blue-800">Low</Badge>
-                        </td>
-                        <td className="py-3">Monitoring</td>
-                        <td className="py-3">Jordan Lee</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+            )}
+          </div>
           
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => handleShareReport(selectedReport!)}
-              className="flex items-center gap-1"
-            >
-              <Share2 className="h-4 w-4" />
-              Share
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleScheduleReport}>
+              {schedule.frequency === "manual" ? "Unschedule" : "Save Schedule"}
             </Button>
-            <Button 
-              variant="outline"
-              className="flex items-center gap-1"
-            >
-              <Download className="h-4 w-4" />
-              Download
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Share Report Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Share Report</DialogTitle>
+            <DialogDescription>
+              {selectedReport?.templateName}
+              {selectedReport?.projectName && ` - ${selectedReport.projectName}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="recipients">Recipients</Label>
+              <div className="border rounded-md p-4 max-h-[200px] overflow-y-auto">
+                {teamMembers.map((member) => (
+                  <div key={member.id} className="flex items-center gap-2 mb-2">
+                    <Checkbox
+                      id={`share-${member.id}`}
+                      checked={shareForm.recipients.includes(member.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setShareForm({ 
+                            ...shareForm, 
+                            recipients: [...shareForm.recipients, member.id] 
+                          })
+                        } else {
+                          setShareForm({ 
+                            ...shareForm, 
+                            recipients: shareForm.recipients.filter(id => id !== member.id) 
+                          })
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`share-${member.id}`} className="flex items-center gap-2 text-sm font-normal cursor-pointer">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div>{member.name}</div>
+                        <div className="text-xs text-muted-foreground">{member.email}</div>
+                      </div>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="message">Message (Optional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Include a message with the report..."
+                rows={3}
+                value={shareForm.message}
+                onChange={(e) => setShareForm({ ...shareForm, message: e.target.value })}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleShareReport}>
+              <Send className="mr-2 h-4 w-4" />
+              Share Report
             </Button>
-            <Button onClick={() => setIsPreviewReportOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
+  )
+}
 
-export default AutomatedReporting;
+export default AutomatedReporting
