@@ -40,24 +40,25 @@ import OrgChat from "./pages/orgAdmin/Chat"
 import MyTasks from "./pages/teamMember/MyTasks"
 import TaskDetails from "./pages/teamMember/TaskDetails"
 import CollaborationBoard from "./pages/teamMember/CollaborationBoard"
+import TeamProjects from "./pages/teamMember/TeamProjects"
 import ProjectOverview from "./pages/teamMember/ProjectOverview"
 import WorkReports from "./pages/teamMember/WorkReports"
 import TeamChat from "./pages/teamMember/Chat"
 
 // Client Pages
-// import ClientDashboard from "./pages/client/Dashboard"
-// import ReportsInsights from "./pages/client/ReportsInsights"
-// import ProjectTimeline from "./pages/client/ProjectTimeline"
-// import FeedbackRequests from "./pages/client/FeedbackRequests"
-// import NotificationsAlerts from "./pages/client/NotificationsAlerts"
-// import ClientChat from "./pages/client/Chat"
+import ClientDashboard from "./pages/client/Dashboard"
+import ReportsInsights from "./pages/client/ReportsInsights"
+import ProjectTimeline from "./pages/client/ProjectTimeline"
+import FeedbackRequests from "./pages/client/FeedbackRequests"
+import NotificationsAlerts from "./pages/client/NotificationsAlerts"
+import ClientChat from "./pages/client/Chat"
 
 // Shared Pages
-// import ProfileSettings from "./pages/shared/ProfileSettings"
-// import NotificationCenter from "./pages/shared/NotificationCenter"
-// import HelpCenter from "./pages/shared/HelpCenter"
-// import IntegrationsPage from "./pages/shared/IntegrationsPage"
-// import NotFound from "./pages/shared/NotFound"
+import ProfileSettings from "./pages/shared/ProfileSettings"
+import NotificationCenter from "./pages/shared/NotificationCenter"
+import HelpCenter from "./pages/shared/HelpCenter"
+import IntegrationsPage from "./pages/shared/IntegrationsPage"
+import NotFound from "./pages/shared/NotFound"
 
 /**
  * Main application component that handles routing
@@ -277,6 +278,14 @@ function App() {
               </ProtectedRoute>
             } 
           />
+        <Route 
+          path="projects" 
+          element={
+            <ProtectedRoute role="teamMember">
+              <TeamProjects />
+            </ProtectedRoute>
+          } 
+        />
           <Route 
             path="projects/:id" 
             element={
@@ -304,7 +313,7 @@ function App() {
         </Route>
 
         {/* Client routes */}
-        {/* <Route path="/client">
+        <Route path="/client">
           <Route 
             index 
             element={
@@ -353,46 +362,46 @@ function App() {
               </ProtectedRoute>
             } 
           />
-        </Route> */}
+        </Route>
 
         {/* Shared routes (available to all authenticated users) */}
-        {/* <Route 
+        <Route 
           path="/profile" 
           element={
             <ProtectedRoute role="">
               <ProfileSettings />
             </ProtectedRoute>
           } 
-        /> */}
+        />
         
-        {/* <Route 
+        <Route 
           path="/notifications" 
           element={
             <ProtectedRoute role="">
               <NotificationCenter />
             </ProtectedRoute>
           } 
-        /> */}
-        {/* <Route 
+        />
+        <Route 
           path="/help" 
           element={
             <ProtectedRoute role="">
               <HelpCenter />
             </ProtectedRoute>
           } 
-        /> */}
-        {/* <Route 
+        />
+        <Route 
           path="/integrations" 
           element={
             <ProtectedRoute role="">
               <IntegrationsPage />
             </ProtectedRoute>
           } 
-        /> */}
+        />
         
       </Route>
       {/* 404 Not Found */}
-      {/* <Route path="*" element={<NotFound />} /> */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }
