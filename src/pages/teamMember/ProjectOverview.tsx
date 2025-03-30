@@ -1,35 +1,24 @@
-import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { 
   ArrowLeft, 
   Calendar, 
-  Clock, 
   Users, 
-  BarChart2, 
-  Layers, 
   FileText, 
   CheckCircle2, 
   AlertTriangle, 
@@ -38,33 +27,92 @@ import {
   Filter,
   Plus,
   ExternalLink,
-  LinkIcon,
   CalendarDays,
   PlusCircle,
-} from "lucide-react"
-import { format } from "date-fns"
-import TaskList from "@/components/projects/TaskList"
-import TeamMembers from "@/components/projects/TeamMembers"
-import ProjectTimeline from "@/components/projects/ProjectTimeline"
+  Flag, // Added the missing Flag icon import
+} from "lucide-react";
+import { format } from "date-fns";
+import TaskList, { Task } from "@/components/projects/TaskList";
+import TeamMembers from "@/components/projects/TeamMembers";
+import ProjectTimeline from "@/components/projects/ProjectTimeline";
+
+/**
+ * Project interface to properly type our data
+ */
+interface ProjectMember {
+  id: string;
+  name: string;
+  avatar: string;
+  email: string;
+  role: string;
+}
+
+interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: string;
+}
+
+interface Risk {
+  id: string;
+  title: string;
+  description: string;
+  severity: string;
+  mitigation: string;
+}
+
+interface Document {
+  id: string;
+  title: string;
+  description: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    name: string;
+  };
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  progress: number;
+  startDate: string;
+  endDate: string;
+  client: {
+    id: string;
+    name: string;
+    logo: string;
+  };
+  manager: ProjectMember;
+  team: ProjectMember[];
+  tasks: Task[];
+  milestones: Milestone[];
+  risks: Risk[];
+  documents: Document[];
+}
 
 /**
  * Project Overview page for Team Members
  */
 function ProjectOverview() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(true)
-  const [project, setProject] = useState<any>(null)
-  const [searchTerm, setSearchTerm] = useState("")
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [project, setProject] = useState<Project | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Fetch project data
   useEffect(() => {
     const fetchProjectDetails = async () => {
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Mock project data - in a real app, this would be fetched from an API
-      const mockProject = {
+      const mockProject: Project = {
         id: "proj-1",
         name: "Website Redesign",
         description: "Redesign and implement the company website with improved UX and modern design",
@@ -299,27 +347,27 @@ function ProjectOverview() {
             }
           }
         ]
-      }
+      };
       
       // Check if the project exists
       if (id === "proj-1") {
-        setProject(mockProject)
+        setProject(mockProject);
       }
       
-      setIsLoading(false)
-    }
+      setIsLoading(false);
+    };
     
-    fetchProjectDetails()
-  }, [id])
+    fetchProjectDetails();
+  }, [id]);
   
   /**
    * Get initials from name for avatar fallback
    */
   const getInitials = (name: string) => {
-    const names = name.split(' ')
-    if (names.length === 1) return names[0].charAt(0).toUpperCase()
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase()
-  }
+    const names = name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
   
   /**
    * Get status color class
@@ -327,63 +375,63 @@ function ProjectOverview() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-500 text-white'
+        return 'bg-green-500 text-white';
       case 'inProgress':
-        return 'bg-blue-500 text-white'
+        return 'bg-blue-500 text-white';
       case 'todo':
-        return 'bg-gray-500 text-white'
+        return 'bg-gray-500 text-white';
       case 'at-risk':
-        return 'bg-amber-500 text-white'
+        return 'bg-amber-500 text-white';
       case 'blocked':
-        return 'bg-red-500 text-white'
+        return 'bg-red-500 text-white';
       default:
-        return 'bg-gray-200 text-gray-800'
+        return 'bg-gray-200 text-gray-800';
     }
-  }
+  };
   
   /**
    * Navigate back to projects list
    */
   const goBack = () => {
-    navigate('/team/projects')
-  }
+    navigate('/team/projects');
+  };
   
   /**
    * Calculate project timeline
    */
   const calculateTimeline = () => {
-    if (!project) return { daysTotal: 0, daysRemaining: 0, percentComplete: 0 }
+    if (!project) return { daysTotal: 0, daysRemaining: 0, percentComplete: 0 };
     
-    const startDate = new Date(project.startDate)
-    const endDate = new Date(project.endDate)
-    const today = new Date()
+    const startDate = new Date(project.startDate);
+    const endDate = new Date(project.endDate);
+    const today = new Date();
     
-    const daysTotal = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    let daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    const daysTotal = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    let daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (daysRemaining < 0) daysRemaining = 0
+    if (daysRemaining < 0) daysRemaining = 0;
     
-    const daysPassed = daysTotal - daysRemaining
-    const percentComplete = Math.round((daysPassed / daysTotal) * 100)
+    const daysPassed = daysTotal - daysRemaining;
+    const percentComplete = Math.round((daysPassed / daysTotal) * 100);
     
-    return { daysTotal, daysRemaining, percentComplete }
-  }
+    return { daysTotal, daysRemaining, percentComplete };
+  };
   
   /**
    * Calculate task stats
    */
   const calculateTaskStats = () => {
-    if (!project) return { total: 0, completed: 0, inProgress: 0, todo: 0, percentComplete: 0 }
+    if (!project) return { total: 0, completed: 0, inProgress: 0, todo: 0, percentComplete: 0 };
     
-    const total = project.tasks.length
-    const completed = project.tasks.filter((task: any) => task.status === 'completed').length
-    const inProgress = project.tasks.filter((task: any) => task.status === 'inProgress').length
-    const todo = project.tasks.filter((task: any) => task.status === 'todo').length
+    const total = project.tasks.length;
+    const completed = project.tasks.filter((task) => task.status === 'completed').length;
+    const inProgress = project.tasks.filter((task) => task.status === 'inProgress').length;
+    const todo = project.tasks.filter((task) => task.status === 'todo').length;
     
-    const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0
+    const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
     
-    return { total, completed, inProgress, todo, percentComplete }
-  }
+    return { total, completed, inProgress, todo, percentComplete };
+  };
   
   // If loading, show skeleton UI
   if (isLoading) {
@@ -415,7 +463,7 @@ function ProjectOverview() {
           <Skeleton className="h-28 w-full" />
         </div>
       </div>
-    )
+    );
   }
   
   // If project not found, show error
@@ -444,12 +492,12 @@ function ProjectOverview() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
   
   // Calculate timeline and task stats
-  const timeline = calculateTimeline()
-  const taskStats = calculateTaskStats()
+  const timeline = calculateTimeline();
+  const taskStats = calculateTaskStats();
   
   return (
     <div className="space-y-6">
@@ -496,7 +544,7 @@ function ProjectOverview() {
             <div className="flex flex-wrap gap-2 items-center">
               <div className="text-sm">Team:</div>
               <div className="flex -space-x-2">
-                {project.team.slice(0, 5).map((member: any) => (
+                {project.team.slice(0, 5).map((member) => (
                   <Avatar key={member.id} className="h-7 w-7 border-2 border-background">
                     <AvatarImage src={member.avatar} alt={member.name} />
                     <AvatarFallback className="text-xs">{getInitials(member.name)}</AvatarFallback>
@@ -564,13 +612,13 @@ function ProjectOverview() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Milestones</p>
                 <p className="text-2xl font-bold">
-                  {project.milestones.filter((m: any) => m.status === 'completed').length}/{project.milestones.length}
+                  {project.milestones.filter((m) => m.status === 'completed').length}/{project.milestones.length}
                 </p>
                 <p className="text-xs text-muted-foreground">completed milestones</p>
               </div>
             </div>
             <Progress 
-              value={(project.milestones.filter((m: any) => m.status === 'completed').length / project.milestones.length) * 100} 
+              value={(project.milestones.filter((m) => m.status === 'completed').length / project.milestones.length) * 100} 
               className="h-2 mt-4"
             />
           </CardContent>
@@ -590,7 +638,7 @@ function ProjectOverview() {
               </div>
             </div>
             <div className="mt-2">
-              {project.risks.map((risk: any) => (
+              {project.risks.map((risk) => (
                 <div key={risk.id} className="flex items-center gap-2 text-xs mb-1">
                   <div 
                     className={cn(
@@ -656,7 +704,7 @@ function ProjectOverview() {
               <TaskList 
                 tasks={project.tasks} 
                 searchTerm={searchTerm} 
-                onTaskClick={(taskId) => navigate(`/team/tasks/${taskId}`)}
+                onTaskClick={(taskId: string) => navigate(`/team/tasks/${taskId}`)}
               />
             </CardContent>
           </Card>
@@ -713,7 +761,7 @@ function ProjectOverview() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {project.documents.map((doc: any) => (
+                {project.documents.map((doc) => (
                   <div 
                     key={doc.id} 
                     className="flex justify-between items-center p-3 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer"
@@ -741,7 +789,7 @@ function ProjectOverview() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
 
-export default ProjectOverview
+export default ProjectOverview;

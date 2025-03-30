@@ -37,12 +37,12 @@ import MeetingIntegration from "./pages/orgAdmin/MeetingIntegration"
 import OrgChat from "./pages/orgAdmin/Chat"
 
 // Team Member Pages
-// import MyTasks from "./pages/teamMember/MyTasks"
-// import TaskDetails from "./pages/teamMember/TaskDetails"
-// import CollaborationBoard from "./pages/teamMember/CollaborationBoard"
-// import ProjectOverview from "./pages/teamMember/ProjectOverview"
-// import WorkReports from "./pages/teamMember/WorkReports"
-// import TeamChat from "./pages/teamMember/Chat"
+import MyTasks from "./pages/teamMember/MyTasks"
+import TaskDetails from "./pages/teamMember/TaskDetails"
+import CollaborationBoard from "./pages/teamMember/CollaborationBoard"
+import ProjectOverview from "./pages/teamMember/ProjectOverview"
+import WorkReports from "./pages/teamMember/WorkReports"
+import TeamChat from "./pages/teamMember/Chat"
 
 // Client Pages
 // import ClientDashboard from "./pages/client/Dashboard"
@@ -252,7 +252,7 @@ function App() {
         </Route>
 
         {/* Team Member routes */}
-        {/* <Route path="/team">
+        <Route path="/team">
           <Route 
             index 
             element={
@@ -301,7 +301,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
-        </Route> */}
+        </Route>
 
         {/* Client routes */}
         {/* <Route path="/client">
