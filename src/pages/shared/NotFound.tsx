@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { 
@@ -20,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card'
 const NotFound = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [searchQuery, setSearchQuery] = React.useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Get the home route based on user role
   const getHomeRoute = () => {

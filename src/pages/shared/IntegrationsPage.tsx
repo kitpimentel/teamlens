@@ -42,7 +42,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -68,56 +67,76 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { toast } from 'sonner'
 
-// Define types for integrations
+// Integration type definitions
+type IntegrationCategory = 'project' | 'communication' | 'calendar' | 'document' | 'other'
+type IntegrationStatus = 'connected' | 'disconnected' | 'error'
+type SyncInterval = 'realtime' | '5min' | '15min' | '30min' | '1hour' | '1day'
+
+interface IntegrationSettings {
+  autoSync: boolean;
+  syncInterval: SyncInterval;
+  defaultProject?: string;
+}
+
+/**
+ * Interface for active integrations in the system
+ */
 interface Integration {
-  id: string
-  name: string
-  provider: string
-  description: string
-  icon: string
-  status: 'connected' | 'disconnected' | 'error'
-  lastSynced?: string
-  connectedAt?: string
-  category: 'project' | 'communication' | 'calendar' | 'document' | 'other'
-  features: string[]
-  projects?: string[]
-  settings?: {
-    autoSync: boolean
-    syncInterval: 'realtime' | '5min' | '15min' | '30min' | '1hour' | '1day'
-    defaultProject?: string
-  }
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  icon: string;
+  status: IntegrationStatus;
+  lastSynced?: string;
+  connectedAt?: string;
+  category: IntegrationCategory;
+  features: string[];
+  projects?: string[];
+  settings: IntegrationSettings;
 }
 
+/**
+ * Interface for available integrations that can be connected
+ */
 interface AvailableIntegration {
-  id: string
-  name: string
-  provider: string
-  description: string
-  icon: string
-  category: 'project' | 'communication' | 'calendar' | 'document' | 'other'
-  features: string[]
-  popularityScore: number // 1-100
-  isNew?: boolean
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  icon: string;
+  category: IntegrationCategory;
+  features: string[];
+  popularityScore: number; // 1-100
+  isNew?: boolean;
 }
 
+/**
+ * Interface for project data
+ */
 interface Project {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 /**
  * Integrations Page Component
  * 
  * Allows users to view, connect, and manage external tool integrations.
+ * This component implements the integration capabilities described in the
+ * Team Lens product scope document.
  */
 const IntegrationsPage = () => {
-  const { user } = useAuth()
+  const { } = useAuth()
   
+  // State for integration data
   const [activeIntegrations, setActiveIntegrations] = useState<Integration[]>([])
   const [availableIntegrations, setAvailableIntegrations] = useState<AvailableIntegration[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   
+  // State for filtering and UI
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -127,8 +146,12 @@ const IntegrationsPage = () => {
   const [isIntegrationDialogOpen, setIsIntegrationDialogOpen] = useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
+  /**
+   * Fetch integrations data on component mount
+   * This is currently using mock data and will be replaced with API calls
+   * when the backend is ready
+   */
   useEffect(() => {
-    // This would be replaced with actual API calls when backend is ready
     const fetchIntegrationsData = async () => {
       try {
         // Simulate API call delay
@@ -300,7 +323,7 @@ const IntegrationsPage = () => {
         setProjects(mockProjects)
       } catch (error) {
         console.error('Error fetching integrations data:', error)
-        // Handle error appropriately
+        toast.error('Failed to load integrations data')
       } finally {
         setIsLoading(false)
       }
@@ -309,7 +332,9 @@ const IntegrationsPage = () => {
     fetchIntegrationsData()
   }, [])
   
-  // Filter active integrations based on search query, category, and status
+  /**
+   * Filter active integrations based on search query, category, and status
+   */
   const filteredActiveIntegrations = activeIntegrations.filter(integration => {
     const matchesSearch = 
       integration.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -322,7 +347,10 @@ const IntegrationsPage = () => {
     return matchesSearch && matchesCategory && matchesStatus
   })
   
-  // Filter available integrations based on search query and category
+  /**
+   * Filter available integrations based on search query and category
+   * Also exclude any integrations that are already connected
+   */
   const filteredAvailableIntegrations = availableIntegrations.filter(integration => {
     const matchesSearch = 
       integration.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -339,7 +367,10 @@ const IntegrationsPage = () => {
     return matchesSearch && matchesCategory && !isAlreadyConnected
   })
   
-  // Format date for display
+  /**
+   * Format date for display
+   * Converts ISO string to relative time (e.g., "2 hours ago") or formatted date
+   */
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never'
     
@@ -371,7 +402,9 @@ const IntegrationsPage = () => {
     }
   }
   
-  // Get default icon for a category
+  /**
+   * Get default icon for a category when no integration-specific icon is available
+   */
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'project':
@@ -387,7 +420,9 @@ const IntegrationsPage = () => {
     }
   }
   
-  // Handle toggling integration status
+  /**
+   * Toggle an integration's connection status
+   */
   const handleToggleStatus = (id: string) => {
     setActiveIntegrations(prevIntegrations => 
       prevIntegrations.map(integration => 
@@ -398,15 +433,21 @@ const IntegrationsPage = () => {
         } : integration
       )
     )
+    
+    toast.success('Integration status updated')
   }
   
-  // Handle opening configuration dialog
+  /**
+   * Open configuration dialog for an integration
+   */
   const handleConfigureIntegration = (integration: Integration) => {
     setSelectedIntegration(integration)
     setIsConfiguring(true)
   }
   
-  // Handle saving integration configuration
+  /**
+   * Save integration configuration changes
+   */
   const handleSaveConfiguration = () => {
     if (!selectedIntegration) return
     
@@ -424,23 +465,30 @@ const IntegrationsPage = () => {
       setIsSubmitting(false)
       setIsConfiguring(false)
       
-      // Show success message
-      alert('Integration configuration saved successfully')
+      toast.success('Integration configuration saved successfully')
     }, 1000)
   }
   
-  // Handle integration removal
+  /**
+   * Remove an integration from the system
+   */
   const handleRemoveIntegration = (id: string) => {
     setActiveIntegrations(prevIntegrations => 
       prevIntegrations.filter(integration => integration.id !== id)
     )
+    
+    toast.success('Integration removed successfully')
   }
   
-  // Handle adding a new integration
+  /**
+   * Add a new integration from the available integrations
+   */
   const handleAddIntegration = (availableIntegration: AvailableIntegration) => {
     setIsIntegrationDialogOpen(false)
     
     // Simulate API call for connecting to integration
+    toast.loading('Connecting to integration...', { id: 'connecting' })
+    
     setTimeout(() => {
       const newIntegration: Integration = {
         id: `int-${Date.now()}`,
@@ -461,13 +509,14 @@ const IntegrationsPage = () => {
       
       setActiveIntegrations(prev => [newIntegration, ...prev])
       
-      // Show success message
-      alert(`${availableIntegration.name} connected successfully`)
+      toast.success(`${availableIntegration.name} connected successfully`, { id: 'connecting' })
     }, 2000)
   }
   
-  // Change settings for selected integration
-  const updateSelectedIntegrationSetting = (key: string, value: any) => {
+  /**
+   * Update a setting for the selected integration
+   */
+  const updateSelectedIntegrationSetting = (key: keyof IntegrationSettings, value: any) => {
     if (!selectedIntegration) return
     
     setSelectedIntegration({
@@ -479,7 +528,9 @@ const IntegrationsPage = () => {
     })
   }
   
-  // Handle project selection for integration
+  /**
+   * Toggle project access for the selected integration
+   */
   const toggleProjectForIntegration = (projectId: string) => {
     if (!selectedIntegration) return
     
@@ -494,6 +545,18 @@ const IntegrationsPage = () => {
     })
   }
 
+  /**
+   * Reset all filters to their default values
+   */
+  const resetFilters = () => {
+    setSearchQuery('')
+    setCategoryFilter('all')
+    setStatusFilter('all')
+  }
+
+  /**
+   * Loading state while fetching data
+   */
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
@@ -563,11 +626,13 @@ const IntegrationsPage = () => {
             </div>
             
             <div className="sm:col-span-1">
-              <Button variant="outline" size="icon" className="w-full h-10" onClick={() => {
-                setSearchQuery('')
-                setCategoryFilter('all')
-                setStatusFilter('all')
-              }}>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="w-full h-10" 
+                onClick={resetFilters}
+                aria-label="Reset filters"
+              >
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
@@ -727,7 +792,7 @@ const IntegrationsPage = () => {
                   'Try adjusting your search or filters' :
                   'Get started by connecting your first integration'}
               </p>
-              {!filteredActiveIntegrations.length && (
+              {!filteredActiveIntegrations.length && !activeIntegrations.length && (
                 <Button className="mt-4" onClick={() => setIsIntegrationDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Integration
@@ -826,6 +891,13 @@ const IntegrationsPage = () => {
               <p className="text-muted-foreground mt-1">
                 Try adjusting your search or filters
               </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={resetFilters}
+              >
+                Reset Filters
+              </Button>
             </div>
           )}
         </TabsContent>
@@ -884,7 +956,7 @@ const IntegrationsPage = () => {
                   </div>
                   <Switch
                     id="auto-sync"
-                    checked={selectedIntegration.settings?.autoSync ?? true}
+                    checked={selectedIntegration.settings.autoSync}
                     onCheckedChange={(checked) => 
                       updateSelectedIntegrationSetting('autoSync', checked)
                     }
@@ -892,16 +964,15 @@ const IntegrationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="sync-interval">Sync Interval</Label>
+                  <Label htmlFor="sync-interval-select">Sync Interval</Label>
                   <Select 
-                    id="sync-interval"
-                    value={selectedIntegration.settings?.syncInterval || '15min'}
-                    onValueChange={(value) => 
+                    value={selectedIntegration.settings.syncInterval}
+                    onValueChange={(value: SyncInterval) => 
                       updateSelectedIntegrationSetting('syncInterval', value)
                     }
-                    disabled={!selectedIntegration.settings?.autoSync}
+                    disabled={!selectedIntegration.settings.autoSync}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="sync-interval-select">
                       <SelectValue placeholder="Select Interval" />
                     </SelectTrigger>
                     <SelectContent>
@@ -917,15 +988,14 @@ const IntegrationsPage = () => {
                 
                 {selectedIntegration.category === 'project' && (
                   <div>
-                    <Label htmlFor="default-project">Default Project</Label>
+                    <Label htmlFor="default-project-select">Default Project</Label>
                     <Select 
-                      id="default-project"
-                      value={selectedIntegration.settings?.defaultProject || ''}
+                      value={selectedIntegration.settings.defaultProject || ''}
                       onValueChange={(value) => 
                         updateSelectedIntegrationSetting('defaultProject', value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="default-project-select">
                         <SelectValue placeholder="Select Default Project" />
                       </SelectTrigger>
                       <SelectContent>
@@ -953,7 +1023,7 @@ const IntegrationsPage = () => {
                     <input
                       type="checkbox"
                       id={`project-${project.id}`}
-                      className="checkbox checkbox-primary"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       checked={selectedIntegration.projects?.includes(project.id) ?? false}
                       onChange={() => toggleProjectForIntegration(project.id)}
                     />
@@ -1068,12 +1138,14 @@ const IntegrationsPage = () => {
                       className="mt-2"
                       onClick={() => {
                         // Simulate refreshing the connection
+                        toast.loading('Refreshing connection...', { id: 'refresh' })
                         setTimeout(() => {
                           setSelectedIntegration({
                             ...selectedIntegration,
                             status: 'connected',
                             lastSynced: new Date().toISOString()
                           })
+                          toast.success('Connection restored successfully', { id: 'refresh' })
                         }, 1500)
                       }}
                     >
@@ -1115,18 +1187,18 @@ const IntegrationsPage = () => {
           </DialogHeader>
           
           <div className="py-4">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search integrations..."
-                  className="pl-8"
+                  className="pl-8 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1186,15 +1258,22 @@ const IntegrationsPage = () => {
                 <p className="text-sm text-muted-foreground mt-1">
                   Try adjusting your search or category filters
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={resetFilters}
+                >
+                  Reset Filters
+                </Button>
               </div>
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsIntegrationDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="sm:ml-2">
               <a 
                 href="https://example.com/integrations/request"
                 target="_blank"

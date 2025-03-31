@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
 import { 
-  PlusIcon, 
-  FilterIcon, 
-  SearchIcon, 
-  CheckIcon, 
-  XIcon, 
-  AlertCircleIcon, 
-  FileTextIcon,
-  MessagesSquareIcon,
-  SendIcon
+  Plus, 
+  Filter, 
+  Search, 
+  Check, 
+  AlertCircle, 
+  FileText,
+  MessagesSquare,
+  Send
 } from 'lucide-react'
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
-  CardFooter, 
+  CardDescription,  
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card'
@@ -52,53 +50,54 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { toast } from 'sonner'
 
 // Define types for data
 interface Feedback {
-  id: string
-  projectId: string
-  projectName: string
-  title: string
-  description: string
-  status: 'Submitted' | 'Acknowledged' | 'In Progress' | 'Implemented' | 'Declined'
-  priority: 'Low' | 'Medium' | 'High'
-  submittedBy: string
-  submittedDate: string
-  responseDate?: string
-  response?: string
-  category: 'Suggestion' | 'Issue' | 'Question' | 'Other'
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  description: string;
+  status: 'Submitted' | 'Acknowledged' | 'In Progress' | 'Implemented' | 'Declined';
+  priority: 'Low' | 'Medium' | 'High';
+  submittedBy: string;
+  submittedDate: string;
+  responseDate?: string;
+  response?: string;
+  category: 'Suggestion' | 'Issue' | 'Question' | 'Other';
 }
 
 interface Request {
-  id: string
-  projectId: string
-  projectName: string
-  title: string
-  description: string
-  status: 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected'
-  priority: 'Low' | 'Medium' | 'High' | 'Urgent'
-  type: 'Feature' | 'Change' | 'Resource' | 'Access' | 'Other'
-  submittedDate: string
-  approvedDate?: string
-  completedDate?: string
-  estimatedCompletion?: string
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  description: string;
+  status: 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected';
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+  type: 'Feature' | 'Change' | 'Resource' | 'Access' | 'Other';
+  submittedDate: string;
+  approvedDate?: string;
+  completedDate?: string;
+  estimatedCompletion?: string;
 }
 
 interface ProjectOption {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface Comment {
-  id: string
-  itemId: string // ID of feedback or request
+  id: string;
+  itemId: string; // ID of feedback or request
   author: {
-    id: string
-    name: string
-    avatar: string
-  }
-  content: string
-  timestamp: string
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  content: string;
+  timestamp: string;
 }
 
 /**
@@ -131,7 +130,6 @@ const FeedbackRequests = () => {
   
   const [newComment, setNewComment] = useState<string>('')
   const [activeItemId, setActiveItemId] = useState<string>('')
-  const [isCommentModalOpen, setIsCommentModalOpen] = useState<boolean>(false)
   
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
@@ -343,7 +341,7 @@ const FeedbackRequests = () => {
         setComments(mockComments)
       } catch (error) {
         console.error('Error fetching data:', error)
-        // Handle error appropriately
+        toast.error('Failed to load data. Please try again.')
       } finally {
         setIsLoading(false)
       }
@@ -379,7 +377,7 @@ const FeedbackRequests = () => {
   }
   
   // Helper function to get status badge color
-  const getStatusBadge = (status: string, type: 'feedback' | 'request') => {
+  const getStatusBadge = (status: string) => {
     let className = ''
     
     switch (status.toLowerCase()) {
@@ -494,17 +492,17 @@ const FeedbackRequests = () => {
       
       // Validate input
       if (!newFeedbackTitle.trim()) {
-        alert('Please enter a title')
+        toast.error('Please enter a title')
         return
       }
       
       if (!newFeedbackDescription.trim()) {
-        alert('Please enter a description')
+        toast.error('Please enter a description')
         return
       }
       
       if (!newFeedbackProject) {
-        alert('Please select a project')
+        toast.error('Please select a project')
         return
       }
       
@@ -537,12 +535,11 @@ const FeedbackRequests = () => {
       setNewFeedbackPriority('Medium')
       setIsAddFeedbackOpen(false)
       
-      // Show success message (would use toast in real app)
-      alert('Feedback submitted successfully')
+      toast.success('Feedback submitted successfully')
       
     } catch (error) {
       console.error('Error submitting feedback:', error)
-      alert('Failed to submit feedback. Please try again.')
+      toast.error('Failed to submit feedback. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -555,17 +552,17 @@ const FeedbackRequests = () => {
       
       // Validate input
       if (!newRequestTitle.trim()) {
-        alert('Please enter a title')
+        toast.error('Please enter a title')
         return
       }
       
       if (!newRequestDescription.trim()) {
-        alert('Please enter a description')
+        toast.error('Please enter a description')
         return
       }
       
       if (!newRequestProject) {
-        alert('Please select a project')
+        toast.error('Please select a project')
         return
       }
       
@@ -597,12 +594,11 @@ const FeedbackRequests = () => {
       setNewRequestPriority('Medium')
       setIsAddRequestOpen(false)
       
-      // Show success message (would use toast in real app)
-      alert('Request submitted successfully')
+      toast.success('Request submitted successfully')
       
     } catch (error) {
       console.error('Error submitting request:', error)
-      alert('Failed to submit request. Please try again.')
+      toast.error('Failed to submit request. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -634,9 +630,11 @@ const FeedbackRequests = () => {
       setComments([...comments, newCommentItem])
       setNewComment('')
       
+      toast.success('Comment added')
+      
     } catch (error) {
       console.error('Error submitting comment:', error)
-      alert('Failed to submit comment. Please try again.')
+      toast.error('Failed to submit comment. Please try again.')
     }
   }
   
@@ -662,7 +660,7 @@ const FeedbackRequests = () => {
           <Dialog open={isAddFeedbackOpen} onOpenChange={setIsAddFeedbackOpen}>
             <DialogTrigger asChild>
               <Button>
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" />
                 New Feedback
               </Button>
             </DialogTrigger>
@@ -784,7 +782,7 @@ const FeedbackRequests = () => {
           <Dialog open={isAddRequestOpen} onOpenChange={setIsAddRequestOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" />
                 New Request
               </Button>
             </DialogTrigger>
@@ -911,7 +909,7 @@ const FeedbackRequests = () => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
-            <FilterIcon className="h-5 w-5 mr-2" />
+            <Filter className="h-5 w-5 mr-2" />
             Filter Items
           </CardTitle>
         </CardHeader>
@@ -958,7 +956,7 @@ const FeedbackRequests = () => {
             <div className="space-y-2">
               <Label htmlFor="search-items">Search</Label>
               <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search-items"
                   placeholder="Search by title or description..."
@@ -976,11 +974,11 @@ const FeedbackRequests = () => {
       <Tabs defaultValue="feedback" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="feedback">
-            <FileTextIcon className="h-4 w-4 mr-2" />
+            <FileText className="h-4 w-4 mr-2" />
             Feedback & Suggestions
           </TabsTrigger>
           <TabsTrigger value="requests">
-            <AlertCircleIcon className="h-4 w-4 mr-2" />
+            <AlertCircle className="h-4 w-4 mr-2" />
             Change Requests
           </TabsTrigger>
         </TabsList>
@@ -1008,7 +1006,7 @@ const FeedbackRequests = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 self-start sm:self-auto">
-                            {getStatusBadge(item.status, 'feedback')}
+                            {getStatusBadge(item.status)}
                             {getPriorityBadge(item.priority)}
                             {getCategoryBadge(item.category)}
                           </div>
@@ -1024,7 +1022,7 @@ const FeedbackRequests = () => {
                           {item.response && (
                             <div className="space-y-2 rounded-md border p-4 bg-accent/20">
                               <div className="font-medium flex items-center">
-                                <CheckIcon className="h-4 w-4 mr-2 text-emerald-500" />
+                                <Check className="h-4 w-4 mr-2 text-emerald-500" />
                                 Response
                               </div>
                               <p className="text-sm">{item.response}</p>
@@ -1039,7 +1037,7 @@ const FeedbackRequests = () => {
                           {/* Comments Section */}
                           <div className="space-y-3 mt-6">
                             <div className="font-medium flex items-center">
-                              <MessagesSquareIcon className="h-4 w-4 mr-2" />
+                              <MessagesSquare className="h-4 w-4 mr-2" />
                               Discussion
                             </div>
                             
@@ -1084,7 +1082,7 @@ const FeedbackRequests = () => {
                                       disabled={activeItemId !== item.id || !newComment.trim()}
                                       onClick={handleSubmitComment}
                                     >
-                                      <SendIcon className="h-4 w-4 mr-2" />
+                                      <Send className="h-4 w-4 mr-2" />
                                       Send
                                     </Button>
                                   </div>
@@ -1099,7 +1097,7 @@ const FeedbackRequests = () => {
                 </Accordion>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <FileTextIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="font-medium text-lg">No feedback found</h3>
                   <p className="text-muted-foreground mt-1">
                     {searchQuery || selectedProject !== 'all' || selectedStatus !== 'all' ? 
@@ -1108,7 +1106,7 @@ const FeedbackRequests = () => {
                   </p>
                   {!filteredFeedback.length && !feedback.length && (
                     <Button className="mt-4" onClick={() => setIsAddFeedbackOpen(true)}>
-                      <PlusIcon className="h-4 w-4 mr-2" />
+                      <Plus className="h-4 w-4 mr-2" />
                       New Feedback
                     </Button>
                   )}
@@ -1141,7 +1139,7 @@ const FeedbackRequests = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 self-start sm:self-auto">
-                            {getStatusBadge(item.status, 'request')}
+                            {getStatusBadge(item.status)}
                             {getPriorityBadge(item.priority)}
                             {getCategoryBadge(item.type)}
                           </div>
@@ -1180,7 +1178,7 @@ const FeedbackRequests = () => {
                           {/* Comments Section */}
                           <div className="space-y-3 mt-6">
                             <div className="font-medium flex items-center">
-                              <MessagesSquareIcon className="h-4 w-4 mr-2" />
+                              <MessagesSquare className="h-4 w-4 mr-2" />
                               Discussion
                             </div>
                             
@@ -1225,7 +1223,7 @@ const FeedbackRequests = () => {
                                       disabled={activeItemId !== item.id || !newComment.trim()}
                                       onClick={handleSubmitComment}
                                     >
-                                      <SendIcon className="h-4 w-4 mr-2" />
+                                      <Send className="h-4 w-4 mr-2" />
                                       Send
                                     </Button>
                                   </div>
@@ -1240,7 +1238,7 @@ const FeedbackRequests = () => {
                 </Accordion>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <AlertCircleIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="font-medium text-lg">No requests found</h3>
                   <p className="text-muted-foreground mt-1">
                     {searchQuery || selectedProject !== 'all' || selectedStatus !== 'all' ? 
@@ -1249,7 +1247,7 @@ const FeedbackRequests = () => {
                   </p>
                   {!filteredRequests.length && !requests.length && (
                     <Button className="mt-4" onClick={() => setIsAddRequestOpen(true)}>
-                      <PlusIcon className="h-4 w-4 mr-2" />
+                      <Plus className="h-4 w-4 mr-2" />
                       New Request
                     </Button>
                   )}

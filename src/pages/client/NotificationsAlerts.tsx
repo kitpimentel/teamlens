@@ -6,11 +6,10 @@ import {
   Clock, 
   FileText, 
   Filter, 
-  MessageSquare, 
   Search,
   AlertTriangle,
   X,
-  InfoIcon,
+  Info,
   RefreshCw,
   CheckCircle2
 } from 'lucide-react'
@@ -35,43 +34,44 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 
 // Define types for notifications
 interface Notification {
-  id: string
-  projectId: string
-  projectName: string
-  title: string
-  content: string
-  type: 'info' | 'warning' | 'success' | 'danger'
-  read: boolean
-  date: string
-  actionRequired: boolean
-  actionUrl?: string
-  sourceType: 'project' | 'task' | 'meeting' | 'system' | 'report'
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  content: string;
+  type: 'info' | 'warning' | 'success' | 'danger';
+  read: boolean;
+  date: string;
+  actionRequired: boolean;
+  actionUrl?: string;
+  sourceType: 'project' | 'task' | 'meeting' | 'system' | 'report';
 }
 
 interface NotificationSettings {
   email: {
-    projectUpdates: boolean
-    taskAssignments: boolean
-    meetingReminders: boolean
-    reportAvailability: boolean
-    systemAlerts: boolean
-  }
+    projectUpdates: boolean;
+    taskAssignments: boolean;
+    meetingReminders: boolean;
+    reportAvailability: boolean;
+    systemAlerts: boolean;
+  };
   inApp: {
-    projectUpdates: boolean
-    taskAssignments: boolean
-    meetingReminders: boolean
-    reportAvailability: boolean
-    systemAlerts: boolean
-  }
-  frequency: 'immediate' | 'hourly' | 'daily' | 'weekly'
+    projectUpdates: boolean;
+    taskAssignments: boolean;
+    meetingReminders: boolean;
+    reportAvailability: boolean;
+    systemAlerts: boolean;
+  };
+  frequency: 'immediate' | 'hourly' | 'daily' | 'weekly';
 }
 
 interface ProjectOption {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 /**
@@ -254,7 +254,7 @@ const NotificationsAlerts = () => {
         setNotifications(mockNotifications)
       } catch (error) {
         console.error('Error fetching notifications data:', error)
-        // Handle error appropriately
+        toast.error('Failed to load notifications data')
       } finally {
         setIsLoading(false)
       }
@@ -290,9 +290,11 @@ const NotificationsAlerts = () => {
           notification.id === id ? { ...notification, read: true } : notification
         )
       )
+      
+      toast.success('Notification marked as read')
     } catch (error) {
       console.error('Error marking notification as read:', error)
-      // Handle error appropriately
+      toast.error('Failed to mark notification as read')
     }
   }
   
@@ -306,9 +308,11 @@ const NotificationsAlerts = () => {
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => ({ ...notification, read: true }))
       )
+      
+      toast.success('All notifications marked as read')
     } catch (error) {
       console.error('Error marking all notifications as read:', error)
-      // Handle error appropriately
+      toast.error('Failed to mark all notifications as read')
     }
   }
   
@@ -322,9 +326,11 @@ const NotificationsAlerts = () => {
       setNotifications(prevNotifications => 
         prevNotifications.filter(notification => notification.id !== id)
       )
+      
+      toast.success('Notification dismissed')
     } catch (error) {
       console.error('Error dismissing notification:', error)
-      // Handle error appropriately
+      toast.error('Failed to dismiss notification')
     }
   }
   
@@ -336,11 +342,10 @@ const NotificationsAlerts = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Show success message (would use toast in real app)
-      alert('Notification settings saved successfully')
+      toast.success('Notification settings saved successfully')
     } catch (error) {
       console.error('Error saving notification settings:', error)
-      alert('Failed to save notification settings. Please try again.')
+      toast.error('Failed to save notification settings. Please try again.')
     } finally {
       setIsSavingSettings(false)
     }
@@ -350,7 +355,7 @@ const NotificationsAlerts = () => {
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'info':
-        return <InfoIcon className="h-5 w-5 text-blue-500" />
+        return <Info className="h-5 w-5 text-blue-500" />
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-amber-500" />
       case 'success':
@@ -358,7 +363,7 @@ const NotificationsAlerts = () => {
       case 'danger':
         return <AlertTriangle className="h-5 w-5 text-red-500" />
       default:
-        return <InfoIcon className="h-5 w-5 text-slate-500" />
+        return <Info className="h-5 w-5 text-slate-500" />
     }
   }
   
@@ -374,9 +379,9 @@ const NotificationsAlerts = () => {
       case 'report':
         return <FileText className="h-4 w-4" />
       case 'system':
-        return <InfoIcon className="h-4 w-4" />
+        return <Info className="h-4 w-4" />
       default:
-        return <InfoIcon className="h-4 w-4" />
+        return <Info className="h-4 w-4" />
     }
   }
   
@@ -588,7 +593,8 @@ const NotificationsAlerts = () => {
                           </div>
                           <div className="flex items-center gap-2 text-xs">
                             {getTypeBadge(notification.type)}
-                            <Badge variant="secondary" className="font-normal">
+                            <Badge variant="secondary" className="font-normal flex items-center gap-1">
+                              {getSourceTypeIcon(notification.sourceType)}
                               <span className="capitalize">{notification.sourceType}</span>
                             </Badge>
                           </div>
@@ -918,7 +924,7 @@ const NotificationsAlerts = () => {
               <div className="space-y-4">
                 <Select 
                   value={notificationSettings.frequency} 
-                  onValueChange={(value: any) => 
+                  onValueChange={(value: 'immediate' | 'hourly' | 'daily' | 'weekly') => 
                     setNotificationSettings({
                       ...notificationSettings,
                       frequency: value

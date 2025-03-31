@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { 
   User, 
-  Mail, 
   Lock, 
   Bell, 
-  Globe, 
   Shield, 
   LogOut,
   Camera,
@@ -49,7 +47,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { useToast } from '@/components/ui/use-toast'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 
 interface UserProfile {
   id: string
@@ -78,7 +77,6 @@ interface UserProfile {
  */
 const ProfileSettings = () => {
   const { user, logout } = useAuth()
-  const { toast } = useToast()
   
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -147,18 +145,14 @@ const ProfileSettings = () => {
         setTwoFactorEnabled(mockProfile.twoFactorEnabled || false)
       } catch (error) {
         console.error('Error fetching profile data:', error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load profile data. Please try again."
-        })
+        toast.error('Failed to load profile data. Please try again.')
       } finally {
         setIsLoading(false)
       }
     }
     
     fetchProfileData()
-  }, [user, toast])
+  }, [user])
 
   /**
    * Handle saving general profile information
@@ -169,20 +163,12 @@ const ProfileSettings = () => {
       
       // Validate input
       if (!name.trim()) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Name cannot be empty"
-        })
+        toast.error('Name cannot be empty')
         return
       }
       
       if (!email.trim()) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Email cannot be empty"
-        })
+        toast.error('Email cannot be empty')
         return
       }
       
@@ -200,17 +186,10 @@ const ProfileSettings = () => {
         jobTitle
       } : null)
       
-      toast({
-        title: "Profile updated",
-        description: "Your profile information has been successfully updated."
-      })
+      toast.success('Your profile information has been successfully updated.')
     } catch (error) {
       console.error('Error saving profile:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update profile. Please try again."
-      })
+      toast.error('Failed to update profile. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -225,39 +204,23 @@ const ProfileSettings = () => {
       
       // Validate input
       if (!currentPassword) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Current password is required"
-        })
+        toast.error('Current password is required')
         return
       }
       
       if (!newPassword) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "New password is required"
-        })
+        toast.error('New password is required')
         return
       }
       
       if (newPassword !== confirmPassword) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "New passwords do not match"
-        })
+        toast.error('New passwords do not match')
         return
       }
       
       // Check password strength
       if (newPassword.length < 8) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Password must be at least 8 characters long"
-        })
+        toast.error('Password must be at least 8 characters long')
         return
       }
       
@@ -269,17 +232,10 @@ const ProfileSettings = () => {
       setNewPassword('')
       setConfirmPassword('')
       
-      toast({
-        title: "Password updated",
-        description: "Your password has been successfully changed."
-      })
+      toast.success('Your password has been successfully changed.')
     } catch (error) {
       console.error('Error changing password:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to change password. Please try again."
-      })
+      toast.error('Failed to change password. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -305,17 +261,10 @@ const ProfileSettings = () => {
         }
       } : null)
       
-      toast({
-        title: "Notification preferences updated",
-        description: "Your notification preferences have been successfully updated."
-      })
+      toast.success('Your notification preferences have been successfully updated.')
     } catch (error) {
       console.error('Error saving notification preferences:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update notification preferences. Please try again."
-      })
+      toast.error('Failed to update notification preferences. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -338,19 +287,14 @@ const ProfileSettings = () => {
         twoFactorEnabled: enable
       } : null)
       
-      toast({
-        title: enable ? "Two-factor authentication enabled" : "Two-factor authentication disabled",
-        description: enable ? 
-          "Your account is now more secure with two-factor authentication." : 
-          "Two-factor authentication has been disabled for your account."
-      })
+      if (enable) {
+        toast.success('Your account is now more secure with two-factor authentication.')
+      } else {
+        toast.success('Two-factor authentication has been disabled for your account.')
+      }
     } catch (error) {
       console.error('Error toggling two-factor authentication:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to ${enable ? 'enable' : 'disable'} two-factor authentication. Please try again.`
-      })
+      toast.error(`Failed to ${enable ? 'enable' : 'disable'} two-factor authentication. Please try again.`)
     } finally {
       setIsSaving(false)
     }
@@ -374,10 +318,7 @@ const ProfileSettings = () => {
       avatar: avatarUrl
     } : null)
     
-    toast({
-      title: "Avatar updated",
-      description: "Your profile picture has been successfully updated."
-    })
+    toast.success('Your profile picture has been successfully updated.')
   }
 
   /**
@@ -391,11 +332,7 @@ const ProfileSettings = () => {
       // No need to navigate - the auth hook will redirect to login
     } catch (error) {
       console.error('Error logging out:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to log out. Please try again."
-      })
+      toast.error('Failed to log out. Please try again.')
     }
   }
 
@@ -735,15 +672,10 @@ const ProfileSettings = () => {
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Label htmlFor="email-notifications" className="sr-only">
-                          Toggle email notifications
-                        </Label>
-                        <input
-                          type="checkbox"
+                        <Switch
                           id="email-notifications"
-                          className="toggle toggle-primary"
                           checked={emailNotifications}
-                          onChange={(e) => setEmailNotifications(e.target.checked)}
+                          onCheckedChange={setEmailNotifications}
                         />
                       </div>
                     </div>
@@ -758,15 +690,10 @@ const ProfileSettings = () => {
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Label htmlFor="push-notifications" className="sr-only">
-                          Toggle push notifications
-                        </Label>
-                        <input
-                          type="checkbox"
+                        <Switch
                           id="push-notifications"
-                          className="toggle toggle-primary"
                           checked={pushNotifications}
-                          onChange={(e) => setPushNotifications(e.target.checked)}
+                          onCheckedChange={setPushNotifications}
                         />
                       </div>
                     </div>
@@ -781,15 +708,10 @@ const ProfileSettings = () => {
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Label htmlFor="sms-notifications" className="sr-only">
-                          Toggle SMS notifications
-                        </Label>
-                        <input
-                          type="checkbox"
+                        <Switch
                           id="sms-notifications"
-                          className="toggle toggle-primary"
                           checked={smsNotifications}
-                          onChange={(e) => setSmsNotifications(e.target.checked)}
+                          onCheckedChange={setSmsNotifications}
                         />
                       </div>
                     </div>
@@ -805,7 +727,7 @@ const ProfileSettings = () => {
                         <input
                           type="checkbox"
                           id="project-updates"
-                          className="checkbox checkbox-primary"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           defaultChecked
                         />
                         <Label htmlFor="project-updates">
@@ -817,7 +739,7 @@ const ProfileSettings = () => {
                         <input
                           type="checkbox"
                           id="meeting-reminders"
-                          className="checkbox checkbox-primary"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           defaultChecked
                         />
                         <Label htmlFor="meeting-reminders">
@@ -829,7 +751,7 @@ const ProfileSettings = () => {
                         <input
                           type="checkbox"
                           id="task-assignments"
-                          className="checkbox checkbox-primary"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           defaultChecked
                         />
                         <Label htmlFor="task-assignments">
@@ -841,7 +763,7 @@ const ProfileSettings = () => {
                         <input
                           type="checkbox"
                           id="report-availability"
-                          className="checkbox checkbox-primary"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           defaultChecked
                         />
                         <Label htmlFor="report-availability">
@@ -853,7 +775,7 @@ const ProfileSettings = () => {
                         <input
                           type="checkbox"
                           id="system-alerts"
-                          className="checkbox checkbox-primary"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           defaultChecked
                         />
                         <Label htmlFor="system-alerts">
