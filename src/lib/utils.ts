@@ -13,6 +13,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Creates a delay using Promise
+ * Useful for simulating API delays or throttling
+ * 
+ * @param ms - Time to wait in milliseconds
+ * @returns Promise that resolves after the specified time
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Format a date string into a human-readable format
  * 
  * @param date - Date string or Date object
